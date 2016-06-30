@@ -66,7 +66,7 @@ This script must be run from within the root of source controlled configuration 
 
 ```
 $ configure-ert --help
-USAGE: ./configure_pcf [options]
+USAGE: configure_pcf [options]
 
 Options:
     -h, --opsman_host     PCF Ops Manager host
