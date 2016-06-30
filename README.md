@@ -25,6 +25,24 @@ root/
         .
 ```
 
+The "config.yml" file should have the following structure
+
+```
+---
+# Configured entities that will be ignored by the script
+ignore:
+    security_groups: [ 'default_security_group', 'metrics-api' ]
+    orgs: [ 'system', 'p-spring-cloud-services', 'apigee-cf-service-broker-org' ]
+    users: [ 'admin' ]
+# LDAP as configured in the ERT security tab
+ldap:
+    host: ...
+    port: ...
+    bind_dn: ...
+    password: ...
+    user_search_base: ...
+```
+
 The organization yml file should have the following structure
 
 ```
