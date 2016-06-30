@@ -66,13 +66,13 @@ This script must be run from within the root of source controlled configuration 
 
 ```
 $ configure-ert --help
-USAGE: configure_pcf [options]
+USAGE: configure_pcf [args]
 
 Options:
     -h, --opsman_host     PCF Ops Manager host
     -u, --opsman_user     PCF Ops Manager login user
     -p, --opsman_passwd   PCF Ops Manager login user's password
-    -k, --opsman_key      PCF Ops Manager decryption key only required after restart
+    -k, --opsman_key      PCF Ops Manager decryption key only required after restart [optional]
 
 $ configure-ert --opsman_host OPS_MANAGER_HOST --opsman_user OPS_MANAGER_USER --opsman_passwd OPS_MANAGER_USER
 ```
