@@ -4,7 +4,7 @@ This repository contains scripts that can be used to automate Pivotal CloudFound
 
 ## ```configure-ert``` script
 
-This script should be used to automate the configuration of organizations and spaces within CloudFoundry. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. It should be run from within a source repository that contains the configuration as follows.
+This script should be used to automate the configuration of organizations and spaces within the Elastic Runtime or CloudFoundry deployment. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. It should be run from within a source repository that contains the configuration as follows.
 
 ```
 root/
