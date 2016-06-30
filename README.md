@@ -6,6 +6,8 @@ This repository contains scripts that can be used to automate Pivotal CloudFound
 
 This script should be used to automate the configuration of organizations and spaces within the Elastic Runtime or CloudFoundry deployment. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. It should be run from within a source repository that contains the configuration as follows.
 
+> Once you start automating the configuration of the Elastic Runtime using this script any manual configuration of Org/Space role and User assignments should be avoided. This script will ensure any manual changes are reverted back. It is important that all commits to the configurations are well commented in order to maintain an audit trail.
+
 ```
 root/
     config/
