@@ -44,7 +44,7 @@ spaces:
 
 The script will call the UAA API via the "uaac" CLI to determine if a user exists before assigning him/her an org or space role. Missing users will be uploaded to UAA and added to the CC. If an LDAP configuration is provided, only users that can be queried will be added with the correct UAA attributes. This would enable LDAP users to have immediate access to their respective tenants when they login to CloudFoundry.
 
-This script must be run from with the source controlled configuration folder as follows:
+This script must be run from with the root of source controlled configuration folder as follows:
 
 ```
 $ configure-ert --help
