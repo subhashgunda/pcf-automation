@@ -1,6 +1,6 @@
 # PCF Automation Scripts and Tools
 
-This repository contains scripts that can be used to automate commercial Pivotal CloudFoundry deployments.
+This repository contains scripts that can be used to automate Pivotal CloudFoundry deployments.
 
 ## ```configure-ert``` script
 
