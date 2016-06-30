@@ -1,0 +1,389 @@
+#!/usr/bin/env ruby
+
+require 'set'
+require 'json'
+require 'yaml'
+
+def validate()
+
+    if !Dir.exist?('config') ||
+        !Dir.exist?('organizations') ||
+        !Dir.exist?('security-groups')
+
+        puts 'ERROR: The configuration script needs to be run from within a configuration repository folder.'
+        exit 1
+    end
+end
+
+def show_usage()
+
+    puts "USAGE: ./configure_pcf [options]"
+    puts
+    puts "Options:"
+    puts "    -h, --opsman_host     PCF Ops Manager host"
+    puts "    -u, --opsman_user     PCF Ops Manager login user"
+    puts "    -p, --opsman_passwd   PCF Ops Manager login user's password"
+    puts "    -k, --opsman_key      PCF Ops Manager decryption key only required after restart"
+    puts
+
+    exit 0
+end
+
+def has_arg(key_short, key_long)
+    ARGV.index { |a| a == key_short || a == key_long } != -1
+end
+
+def get_arg_value(key_short, key_long, required = false)
+    i = ARGV.index { |a| a == key_short || a == key_long }
+    value = ARGV[i + 1] if !i.nil?
+    if required and value.nil?
+        show_usage
+    end
+    value
+end
+
+def check_error(out, message)
+    if !$?.success?
+        puts "ERROR: #{message}"
+        puts out
+        exit 1
+    end
+    out
+end
+
+def user_exists?(user)
+    %x(#{@uaac} user get '#{user}')
+    $?.success?
+end
+
+def add_user(user)
+
+    puts "Adding user '#{user}'."
+
+    user_data = { 
+        'userName' => user,
+        'origin' => 'uaa',
+        'emails' => [
+            { 'value' => user }
+        ] }
+
+    if !@ldap_config.nil?
+        user_data['origin'] = 'ldap'
+        user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -h #{@ldap_config['ldap_host']} -p '#{@ldap_config['ldap_port']}' \
+            -D '#{@ldap_config['ldap_bind_dn']}' -w '#{@ldap_config['ldap_password']}' \
+            -b '#{@ldap_config['user_search_base']}'  mail='#{user}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }' ),
+            "LDAP query for user '#{user}' failed." )
+    end
+
+    user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'), 
+        'Unable to create user in UAA.').split(/RESPONSE BODY:/)[1])
+
+    check_error( %x(#{@cf_cli} curl /v2/users -d '{ "guid": "#{user_detail['id']}" }' -X POST),
+        'Unable to add user to CC.' )
+end
+
+def set_org_role(user_list, existing_list, org, role)
+
+    user_list.each { |u| 
+        if !existing_list.include?(u)
+            add_user(u) if !user_exists?(u)
+            puts "Setting #{role} role for user #{u} in org '#{org}'."
+            check_error(%x(#{@cf_cli} set-org-role #{u} '#{org}' #{role}), 
+                "Unable to set org role.")
+        end
+        existing_list.delete_if { |n| n==u }
+    }
+    existing_list.each{ |u| 
+        puts "Removing #{role} role for user #{u} in org '#{org}'."
+        check_error(%x(#{@cf_cli} unset-org-role #{u} '#{org}' #{role}), 
+            "Unable to unset org role.")
+    }
+end
+
+def set_space_role(user_list, existing_list, org, space, role)
+
+    user_list.each { |u| 
+        if !existing_list.include?(u)
+            add_user(u) if !user_exists?(u)
+            puts "Setting #{role} role for user #{u} in org '#{org}' and space '#{space}'."
+            check_error(%x(#{@cf_cli} set-space-role #{u} '#{org}' '#{space}' #{role}), 
+                "Unable to set space role.")
+        end
+        existing_list.delete_if { |n| n==u }
+    }
+    existing_list.each{ |u| 
+        puts "Removing #{role} role for user #{u} in org '#{org}' and space '#{space}'."
+        check_error(%x(#{@cf_cli} unset-space-role #{u} '#{org}' '#{space}' #{role}), 
+            "Unable to unset org role.")
+    }
+end
+
+validate()
+
+opsman_host = get_arg_value('-u', '--opsman_host', true)
+opsman_user = get_arg_value('-u', '--opsman_user', true)
+opsman_passwd = get_arg_value('-p', '--opsman_passwd', true)
+opsman_key = get_arg_value('-k', '--opsman_key')
+
+@config = File.exist?('config/config.yml') ? YAML.load_file('config/config.yml') : []
+@ldap_config = @config['ldap']
+
+ignore_security_groups = @config['ignore']['security_groups']
+ignore_orgs = @config['ignore']['orgs']
+ignore_users = @config['ignore']['users']
+
+if File.exist?('/home/tempest-web/tempest/web/vendor/bosh/Gemfile')
+    @uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
+    @bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh'
+else
+    @uaac='uaac'
+    @bosh='bosh'
+end
+
+os = ( RUBY_PLATFORM =~ /darwin/ ? 'darwin'
+    : RUBY_PLATFORM =~ /linux/ ? 'linux' : '' )
+
+curdir = File.expand_path(File.dirname(__FILE__))
+@cf_cli = curdir + '/tools/' + os + '/cf'
+@ldapsearch_cli = curdir + '/tools/' + os + '/ldapsearch'
+
+if !File.exist?(@cf_cli)
+    puts "ERROR: Unsupported operating system."
+    exit 1
+end
+
+#
+# Login to OpsManager
+#
+
+puts "Logging into PCF Ops Manager."
+
+check_error( %x(#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation), 
+    'Unable to target Ops Manager\'s UAA' )
+
+check_error(%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'), 
+    'Unable to get uaac token from Ops Manager UAA.')
+
+access_token = check_error(%x(#{@uaac} context | awk '/access_token:/{ print $2 }'), 
+    'Unable to get uaac access token value from context.')
+
+#
+# Retrieve Bosh and Elastic Runtime credentials
+#
+
+puts "Retrieving credentials."
+
+installation_settings = JSON.parse(check_error( 
+    %x(curl -k https://#{opsman_host}/api/installation_settings \
+        -X GET -H "Authorization: Bearer #{access_token}" 2> /dev/null),
+    'Unable to retrieve the installation settings.'))
+
+installed_products = JSON.parse(check_error( 
+    %x(curl -k https://#{opsman_host}/api/v0/staged/products \
+        -X GET -H "Authorization: Bearer #{access_token}" 2> /dev/null),
+    'Unable to retrieve list of installed products'))
+
+cf_product_id = installed_products.select{ |p| p['type']=='cf'}.first['guid']
+
+bosh_director_credentials = JSON.parse(check_error( 
+    %x(curl -k https://#{opsman_host}/api/v0/deployed/director/credentials/director_credentials \
+        -X GET -H "Authorization: Bearer #{access_token}" 2> /dev/null),
+    'Unable to retrieve Bosh Directory credentials'))['credential']['value']
+
+cf_admin_credentials = JSON.parse(check_error( 
+    %x(curl -k https://#{opsman_host}/api/v0/deployed/products/#{cf_product_id}/credentials/.uaa.admin_credentials \
+        -X GET -H "Authorization: Bearer #{access_token}" 2> /dev/null),
+    'Unable to retrieve ERT admin credentials'))['credential']['value']
+
+cf_uaa_admin_client_credentials = JSON.parse(check_error( 
+    %x(curl -k https://#{opsman_host}/api/v0/deployed/products/#{cf_product_id}/credentials/.uaa.admin_client_credentials \
+        -X GET -H "Authorization: Bearer #{access_token}" 2> /dev/null),
+    'Unable to retrieve ERT admin credentials'))['credential']['value']
+
+cloud_controller_settings = installation_settings['products'].select{ |p| p['guid']==cf_product_id }
+    .first['jobs'].select{ |j| j['installation_name']=='cloud_controller' }.first
+
+cf_system_domain = cloud_controller_settings['properties'].select{ |p| p['identifier']=='system_domain' }.first['value']
+cf_apps_domain = cloud_controller_settings['properties'].select{ |p| p['identifier']=='apps_domain' }.first['value']
+
+#
+# Login to Elastic Runtime
+#
+
+puts "Logging into CloudFoundry."
+check_error( %x(#{@cf_cli} login -a https://api.#{cf_system_domain} \
+    -u #{cf_admin_credentials['identity']} \
+    -p #{cf_admin_credentials['password']} \
+    -o system -s system --skip-ssl-validation), 
+    'Unable login to the CloudController API.' )
+
+puts "Logging into CloudFoundry UAA."
+check_error( 
+    %x(#{@uaac} target --skip-ssl-validation https://uaa.#{cf_system_domain} ),
+    "Unable to set the CloudFoundry UAA target" )
+check_error( 
+    %x(#{@uaac} token client get #{cf_uaa_admin_client_credentials['identity']} \-s #{cf_uaa_admin_client_credentials['password']}), 
+    'Unable login to the CloudController UAA.' )
+
+#
+# Update security groups
+#
+
+cf_security_groups = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/security_groups), 
+    'Unable to retrieve security groups.'))['resources']
+
+cf_security_group_list = cf_security_groups.map{ |s| s['entity']['name'] }
+    .select { |n| !ignore_security_groups.include?(n) }
+
+Dir.glob('security-groups/*.json') do |rule_file|
+
+    name = File.basename(rule_file, ".json") 
+    
+    if cf_security_group_list.include?(name)
+
+        existing_rule = cf_security_groups.select{ |r| r['entity']['name']==name }.first['entity']['rules']
+        new_rule = JSON.parse(IO.read(rule_file))
+        if !existing_rule.eql?(new_rule)
+            puts "Updating security group rule '#{name}'."
+            check_error(%x(#{@cf_cli} update-security-group #{name} #{rule_file}), 
+                "Unable to update security group #{name}.")
+        end
+    else
+        puts "Adding security group rule '#{name}'."
+        check_error(%x(#{@cf_cli} create-security-group #{name} #{rule_file}), 
+            "Unable to create security group #{name}.")
+    end
+
+    cf_security_group_list.delete_if { |n| n == name }
+end
+
+cf_security_group_list.each{ |n| 
+    puts "Deleting security group '#{n}."
+    check_error(%x(#{@cf_cli} delete-security-group -f #{n}), 
+        "Unable to delete security group #{n}.")    
+}
+
+#
+# Create orgs and spaces and set their quotas, security groups and users
+#
+
+cf_orgs = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations), 
+    'Unable to retrieve organizations.'))['resources']
+cf_org_list = cf_orgs.map{ |s| s['entity']['name'] }
+    .select { |n| !ignore_orgs.include?(n) }
+
+cf_spaces = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces), 
+    'Unable to retrieve spaces.'))['resources']
+cf_spaces_map = {}
+cf_spaces.each{ |s| 
+    cf_spaces_map[s['entity']['organization_guid']] = 
+        (cf_spaces_map[s['entity']['organization_guid']] || []) + [ s['entity']['name'] ]
+}
+
+# cf_org_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/quota_definitions), 
+#     'Unable to retrieve organization quota definitions.'))['resources']
+# cf_org_quota_map = {}
+# cf_org_quotas.each{ |q| 
+#     cf_org_quota_map[q['metadata']['guid']] = 
+#         (cf_org_quota_map[q['metadata']['guid']] || []) + [ { 
+#             "allow-paid-service-plans" => q['entity']['non_basic_services_allowed'],
+#             "maximum-memory-per-instance" => q['entity']['instance_memory_limit'],
+#             "total-memory" => q['entity']['memory_limit'],
+#             "total-routes" => q['entity']['total_routes'],
+#             "total-services" => q['entity']['total_services']
+#         } ]
+# }
+
+# cf_space_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/space_quota_definitions), 
+#     'Unable to retrieve space quota definitions.'))['resources']
+# cf_space_quota_map = {}
+# cf_space_quotas.each{ |q| 
+#     cf_space_quota_map[q['metadata']['guid']] = 
+#         (cf_space_quota_map[q['metadata']['guid']] || []) + [ { 
+#             "allow-paid-service-plans" => q['entity']['non_basic_services_allowed'],
+#             "maximum-memory-per-instance" => q['entity']['instance_memory_limit'],
+#             "total-memory" => q['entity']['memory_limit'],
+#             "total-routes" => q['entity']['total_routes'],
+#             "total-services" => q['entity']['total_services']
+#         } ]
+# }
+
+Dir.glob('organizations/*.yml') do |org_file|
+
+    org_details = YAML.load_file(org_file)
+    org_name = org_details['name']
+
+    if !cf_org_list.include?(org_name)
+        puts "Creating organization '#{org_name}'."
+        check_error(%x(#{@cf_cli} create-org '#{org_name}'), 
+            "Unable to create organization #{org_name}.")        
+    end
+
+    check_error( %x(#{@cf_cli} target -o '#{org_name}'), 
+        "Unable to target org #{org_name}.").chomp
+    org_id = check_error( %x(#{@cf_cli} org '#{org_name}' --guid), 
+        "Unable to retrieve id of org #{org_name}.").chomp
+
+    cf_org_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/managers), 
+        'Unable to retrieve the list of users who are org managers.'))['resources']
+        .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+    set_org_role(org_details['org-managers'], cf_org_manager_list, org_name, 'OrgManager') \
+        if org_details.has_key?('org-managers')
+    cf_org_billing_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/billing_managers), 
+        'Unable to retrieve the list of users who are billing managers.'))['resources']
+        .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+    set_org_role(org_details['billing-managers'], cf_org_billing_manager_list, org_name, 'BillingManager') \
+        if org_details.has_key?('billing-managers')
+    cf_org_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/auditors), 
+        'Unable to retrieve the list of users who are org auditors.'))['resources']
+        .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+    set_org_role(org_details['org-auditors'], cf_org_auditor_list, org_name, 'OrgAuditor') \
+        if org_details.has_key?('org-auditors')
+
+    cf_space_list = cf_spaces_map[org_id]
+
+    org_details['spaces'].each{ |s| 
+
+        space_name = s['name']
+
+        if cf_space_list.nil? || !cf_space_list.include?(space_name)
+            puts "Creating space '#{s}'."
+            check_error(%x(#{@cf_cli} create-space #{space_name} -o '#{org_name}'), 
+                "Unable to create space '#{space_name}' in organization '#{org_name}'.")        
+        end
+
+        space_id = check_error( %x(#{@cf_cli} space '#{space_name}' --guid), 
+            "Unable to retrieve id of space #{space_name}.").chomp
+
+        cf_space_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/managers), 
+            'Unable to retrieve the list of users who are space managers.'))['resources']
+            .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+        set_space_role(s['space-managers'], cf_space_manager_list, org_name, space_name, 'SpaceManager') \
+            if s.has_key?('space-managers')
+        cf_space_developer_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/developers), 
+            'Unable to retrieve the list of users who are space developers.'))['resources']
+            .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+        set_space_role(s['space-developers'], cf_space_developer_list, org_name, space_name, 'SpaceDeveloper') \
+            if s.has_key?('space-developers')
+        cf_space_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/auditors), 
+            'Unable to retrieve the list of users who are space auditors.'))['resources']
+            .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
+        set_space_role(s['space-auditors'], cf_space_auditor_list, org_name, space_name, 'SpaceAuditor') \
+            if s.has_key?('space-auditors')
+
+        cf_space_list.delete_if { |n| n == space_name }
+    }
+    cf_space_list.each{ |n| 
+        puts "Deleting space '#{n}."
+        check_error(%x(#{@cf_cli} target -o '#{org_name}'; cf delete-space -f #{n}), 
+            "Unable to delete space '#{n}' in org '#{org_name}.")    
+    }
+
+    cf_org_list.delete_if { |n| n == org_name }
+end
+
+cf_org_list.each{ |n| 
+    puts "Deleting org '#{n}."
+    check_error(%x(#{@cf_cli} delete-org -f #{n}), 
+        "Unable to delete org #{n}.")    
+}
