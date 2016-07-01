@@ -66,13 +66,22 @@ This script must be run from within the root of source controlled configuration 
 
 ```
 $ configure-ert --help
-USAGE: configure_pcf [args]
+USAGE: configure_ert [arguments]
 
 Options:
-    -h, --opsman_host     PCF Ops Manager host
-    -u, --opsman_user     PCF Ops Manager login user
-    -p, --opsman_passwd   PCF Ops Manager login user's password
-    -k, --opsman_key      PCF Ops Manager decryption key only required after restart [optional]
+    --help                Show usage options and arguments
 
-$ configure-ert --opsman_host OPS_MANAGER_HOST --opsman_user OPS_MANAGER_USER --opsman_passwd OPS_MANAGER_USER
+Arguments:
+    -o, --opsman-host     PCF Ops Manager host
+    -u, --opsman-user     PCF Ops Manager login user
+    -p, --opsman-passwd   PCF Ops Manager login user's password
+    -k, --opsman-key      PCF Ops Manager decryption key only required after restart [optional]
+
+    The following optional arguments can also be provided via config.yml
+    -l, --ldap-host       LDAP host
+    -t, --ldap-port       LDAP port
+    -d, --ldap-bind-dn    LDAP bind distinguished name
+    -w, --ldap-password   LDAP bind password
+    
+$ configure-ert --opsman-host OPS_MANAGER_HOST --opsman-user OPS_MANAGER_USER --opsman-passwd OPS_MANAGER_USER
 ```
