@@ -17,20 +17,29 @@ end
 
 def show_usage()
 
-    puts "USAGE: ./configure_pcf [options]"
+    puts "USAGE: configure_ert [arguments]"
     puts
     puts "Options:"
-    puts "    -h, --opsman_host     PCF Ops Manager host"
-    puts "    -u, --opsman_user     PCF Ops Manager login user"
-    puts "    -p, --opsman_passwd   PCF Ops Manager login user's password"
-    puts "    -k, --opsman_key      PCF Ops Manager decryption key only required after restart"
+    puts "    --help                Show usage options and arguments"
+    puts
+    puts "Arguments:"
+    puts "    -o, --opsman-host     PCF Ops Manager host"
+    puts "    -u, --opsman-user     PCF Ops Manager login user"
+    puts "    -p, --opsman-passwd   PCF Ops Manager login user's password"
+    puts "    -k, --opsman-key      PCF Ops Manager decryption key only required after restart [optional]"
+    puts
+    puts "    The following optional arguments can also be provided via config.yml"
+    puts "    -l, --ldap-host       LDAP host"
+    puts "    -t, --ldap-port       LDAP port"
+    puts "    -d, --ldap-bind-dn    LDAP bind distinguished name"
+    puts "    -w, --ldap-password   LDAP bind password"
     puts
 
     exit 0
 end
 
-def has_arg(key_short, key_long)
-    ARGV.index { |a| a == key_short || a == key_long } != -1
+def has_option(key_short, key_long)
+    !ARGV.index { |a| a == key_short || a == key_long }.nil?
 end
 
 def get_arg_value(key_short, key_long, required = false)
@@ -69,8 +78,9 @@ def add_user(user)
 
     if !@ldap_config.nil?
         user_data['origin'] = 'ldap'
-        user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -h #{@ldap_config['ldap_host']} -p '#{@ldap_config['ldap_port']}' \
-            -D '#{@ldap_config['ldap_bind_dn']}' -w '#{@ldap_config['ldap_password']}' \
+
+        user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -h #{@ldap_host} -p #{@ldap_port} \
+            -D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
             -b '#{@ldap_config['user_search_base']}'  mail='#{user}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }' ),
             "LDAP query for user '#{user}' failed." )
     end
@@ -120,13 +130,20 @@ end
 
 validate()
 
-opsman_host = get_arg_value('-u', '--opsman_host', true)
-opsman_user = get_arg_value('-u', '--opsman_user', true)
-opsman_passwd = get_arg_value('-p', '--opsman_passwd', true)
-opsman_key = get_arg_value('-k', '--opsman_key')
+show_usage if has_option('-h', '--help')
+
+opsman_host = get_arg_value('-o', '--opsman-host', true)
+opsman_user = get_arg_value('-u', '--opsman-user', true)
+opsman_passwd = get_arg_value('-p', '--opsman-passwd', true)
+opsman_key = get_arg_value('-k', '--opsman-key')
 
 @config = File.exist?('config/config.yml') ? YAML.load_file('config/config.yml') : []
-@ldap_config = @config['ldap']
+@ldap_config = @config['ldap'] || {}
+
+@ldap_host = get_arg_value('-u', '--ldap-host') || @ldap_config['host']
+@ldap_port = get_arg_value('-u', '--ldap-port') || @ldap_config['port']
+@ldap_bind_dn = get_arg_value('-p', '--ldap-bind-dn') || @ldap_config['bind_dn']
+@ldap_password = get_arg_value('-k', '--ldap-password') || @ldap_config['password']
 
 ignore_security_groups = @config['ignore']['security_groups']
 ignore_orgs = @config['ignore']['orgs']
