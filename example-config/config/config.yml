@@ -1,6 +1,6 @@
 ---
 
-default-shared-domains: [ 'cfapps-02.haas-40.pez.pivotal.io' ]
+default-shared-domains: [ 'apps.acme.com' ]
 shared_domains: [ 'shared1.acme.com', 'shared2.acme.com' ]
 
 security-groups:
