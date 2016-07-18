@@ -2,25 +2,33 @@
 
 This repository contains scripts that can be used to automate Pivotal CloudFoundry deployments.
 
-## ```configure-ert``` script
+## *configure-ert* script
 
-This script should be used to automate the configuration of organizations and spaces within the Elastic Runtime or CloudFoundry deployment. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. It should be run from within a source repository that contains the configuration as follows.
+This script should be used to automate the configuration of organizations and spaces within the Elastic Runtime or CloudFoundry deployment. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. It should be run from within a source repository that contains the configuration as follows. The "example-config" folder within this repository contains a sample configuration.
 
 > Once you start automating the configuration of the Elastic Runtime using this script any manual configuration of Org/Space role and User assignments should be avoided. This script will ensure any manual changes are reverted back. It is important that all commits to the configurations are well commented in order to maintain an audit trail.
 
 ```
 root/
     config/
-        config.yml      <-- i.e. ldap configuration for ldapsearch query
+        config.yml            <-- i.e. ldap configuration for ldapsearch query
     security_groups/
-        asg1.json       <-- application security group rule file.
+        asg1.json             <-- application security group rule file.
         asg2.json
         .
         .
+    quotas/
+    	default.yml            <-- quotas that can be associated with orgs
+    	runaway.yml
+    	.
+    	.
+    	org1/
+    		space-quota1.yml   <-- quotas that can be associated with spaces in 'org1'.
+    		.
+    		.
     organizations/
-        org1.yml        <-- organization detail including spaces, users and asgs.
+        org1.yml               <-- organization detail including spaces.
         org2.yml
-        .
         .
         .
 ```
@@ -29,11 +37,32 @@ The "config.yml" file should have the following structure
 
 ```
 ---
-# Configured entities that will be ignored by the script
+
+# Domains within the default-shared-domains list
+# will not be reset when synchronizing the list in
+# shared-domains
+default-shared-domains: [ 'apps.acme.com' ]
+shared-domains: [ 'shared1.acme.com', 'shared2.acme.com' ]
+
+# The default staging and running security groups. If you 
+# do not provide this these security groups will be reset.
+security-groups:
+    staging-security-groups: [ 'default_security_group' ]
+    running-security-groups: [ 'default_security_group' ]
+    
+# Deletes any entities that are missing from source.
+# Set this to "false" if you want to keep any changes
+# done manually.
+delete_missing_entities: true
+
+# Configured entities that will be ignored by the script 
+# if delete_missing_entities is set to "true".
 ignore:
-    security_groups: [ 'default_security_group', 'metrics-api' ]
-    orgs: [ 'system', 'p-spring-cloud-services', 'apigee-cf-service-broker-org' ]
+    security-groups: [ 'default_security_group', 'metrics-api' ]
+    quotas: [ 'cloud-native-quota', 'p-spring-cloud-services', 'apigee-cf-service-broker-org-quota' ]
+    orgs: [ 'system', 'p-spring-cloud-services', 'apigee-cf-service-broker-org', 'cloud-native' ]
     users: [ 'admin' ]
+
 # LDAP as configured in the ERT security tab
 ldap:
     host: ...
@@ -47,17 +76,31 @@ The organization yml file should have the following structure
 
 ```
 ---
-name: <ORGANIZATION NAME>
-org-managers: [ <USER_NAME>, ... ]
-org-auditors: [ <USER_NAME>, ... ]
+name: automation-demo
+quota: 'runaway'
+domains: [ 'staging-auto-demo.acme.com', 'production-auto-demo.acme.com' ]
+org-managers: [ 'dev-manager@acme.com' ]
+org-auditors: [ 'app-auditor@acme.com' ]
 spaces:
-- name: <SPACE_NAME>
-  space-managers: [ <USER_NAME>, ... ]
-  space-developers: [ <USER_NAME>, ... ]
-  space-auditors: [ <USER_NAME>, ... ]
-  security-groups: [ <ASG_NAME>, ... ]  <-- should be one of the security groups
--
--
+- name: Sandbox
+  quota: 'development'
+  security-groups: [ 'pcf-network' ]
+  space-managers: [ 'team-lead@acme.com' ]
+  space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com', 'intern-dev1@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Development
+  quota: 'development'
+  space-managers: [ 'team-lead@acme.com' ]
+  space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Staging
+  security-groups: [ 'mysql','rabbitmq' ]
+  space-managers: [ 'prod-support@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Production
+  security-groups: [ 'mysql','rabbitmq' ]
+  space-managers: [ 'prod-support@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
 ```
 
 The script will call the UAA API via the "uaac" CLI to determine if a user exists before assigning him/her an org or space role. Missing users will be uploaded to UAA and added to the CC. If an LDAP configuration is provided, only users that can be queried will be added with the correct UAA attributes. This would enable LDAP users to have immediate access to their respective tenants when they login to CloudFoundry.
