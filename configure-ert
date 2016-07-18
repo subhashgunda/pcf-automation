@@ -318,7 +318,7 @@ if @config.has_key?('default-shared-domains')
 		.map{ |d| d['entity']['name'] }
 		.select{ |n| !default_shared_domains.include?(n) }
 
-	(@config['shared_domains'] || []).each { |d|
+	(@config['shared-domains'] || []).each { |d|
 
 		if !cf_shared_domains.include?(d)
 			puts "Creating shared domain #{d}."
