@@ -7,8 +7,9 @@ require 'yaml'
 def validate()
 
     if !Dir.exist?('config') ||
-        !Dir.exist?('organizations') ||
-        !Dir.exist?('security-groups')
+        !Dir.exist?('security-groups') ||
+        !Dir.exist?('quotas') ||
+        !Dir.exist?('organizations')
 
         puts 'ERROR: The configuration script needs to be run from within a configuration repository folder.'
         exit 1
@@ -60,6 +61,64 @@ def check_error(out, message)
     out
 end
 
+def quota_detail(entity) 
+
+	{ 
+		'allow-paid-service-plans' => entity['non_basic_services_allowed'],
+		'instance-memory' => entity['instance_memory_limit'],
+		'total-app-instances' => entity['app_instance_limit'],
+		'total-memory' => entity['memory_limit'],
+		'total-routes' => entity['total_routes'],
+		'total-services' => entity['total_services'],
+		'total_route_ports' => entity['total_reserved_route_ports']
+	}
+end
+
+def update_quotas(cf_quota_group_list, cf_quota_map, org_name = nil)
+
+	quota_dir = org_name.nil? ? 'quotas' : 'quotas/' + org_name
+	create_cmd = org_name.nil? ? 'create-quota' : 'create-space-quota'
+	update_cmd = org_name.nil? ? 'update-quota' : 'update-space-quota'
+
+	Dir.glob("#{quota_dir}/*.yml") do |quota_file|
+
+		name = File.basename(quota_file, ".yml") 
+		cf_quota_new = YAML.load_file(quota_file)
+		
+		if cf_quota_group_list.include?(name)
+	
+			cf_quota = cf_quota_map[name]
+			cf_quota.delete('total_route_ports') if !org_name.nil?
+			
+			if cf_quota_new != cf_quota
+				puts "Updating quota '#{name}'."
+				check_error( %x(#{@cf_cli} #{update_cmd} #{name} \
+					-a #{cf_quota_new['total-app-instances']} \
+					-i #{cf_quota_new['instance-memory']}M \
+					-m #{cf_quota_new['total-memory']}M \
+					-r #{cf_quota_new['total-routes']} \
+					-s #{cf_quota_new['total-services']} \
+					#{cf_quota_new['allow-paid-service-plans'] ? '--allow-paid-service-plans' : '--disallow-paid-service-plans'}), 
+					"Unable to update quota '#{name}'.")
+			end
+		else
+			puts "Creating quota '#{name}'."
+			check_error( %x(#{@cf_cli} #{create_cmd} #{name} \
+				-a #{cf_quota_new['total-app-instances']} \
+				-i #{cf_quota_new['instance-memory']}M \
+				-m #{cf_quota_new['total-memory']}M \
+				-r #{cf_quota_new['total-routes']} \
+				-s #{cf_quota_new['total-services']} \
+				#{cf_quota_new['allow-paid-service-plans'] ? '--allow-paid-service-plans' : ''}), 
+				"Unable to create quota '#{name}'.")
+		end
+
+		cf_quota_group_list.delete_if { |n| n == name }
+	end
+	
+	cf_quota_group_list
+end
+
 def user_exists?(user)
     %x(#{@uaac} user get '#{user}')
     $?.success?
@@ -76,20 +135,23 @@ def add_user(user)
             { 'value' => user }
         ] }
 
-    if !@ldap_config.nil?
+    if !@ldap_host.nil?
         user_data['origin'] = 'ldap'
 
         user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -h #{@ldap_host} -p #{@ldap_port} \
             -D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
             -b '#{@ldap_config['user_search_base']}'  mail='#{user}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }' ),
             "LDAP query for user '#{user}' failed." )
-    end
+            
+		user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'), 
+			'Unable to create user in UAA.').split(/RESPONSE BODY:/)[1])
 
-    user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'), 
-        'Unable to create user in UAA.').split(/RESPONSE BODY:/)[1])
-
-    check_error( %x(#{@cf_cli} curl /v2/users -d '{ "guid": "#{user_detail['id']}" }' -X POST),
-        'Unable to add user to CC.' )
+		check_error( %x(#{@cf_cli} curl /v2/users -d '{ "guid": "#{user_detail['id']}" }' -X POST),
+			'Unable to add user to CC.' )
+	else	
+		check_error( %x(#{@cf_cli} create-user #{user} 'ChangeMe'),
+			'Unable to create user to #{user}.' )
+	end
 end
 
 def set_org_role(user_list, existing_list, org, role)
@@ -107,7 +169,7 @@ def set_org_role(user_list, existing_list, org, role)
         puts "Removing #{role} role for user #{u} in org '#{org}'."
         check_error(%x(#{@cf_cli} unset-org-role #{u} '#{org}' #{role}), 
             "Unable to unset org role.")
-    }
+    } if @delete_missing_entities
 end
 
 def set_space_role(user_list, existing_list, org, space, role)
@@ -125,7 +187,7 @@ def set_space_role(user_list, existing_list, org, space, role)
         puts "Removing #{role} role for user #{u} in org '#{org}' and space '#{space}'."
         check_error(%x(#{@cf_cli} unset-space-role #{u} '#{org}' '#{space}' #{role}), 
             "Unable to unset org role.")
-    }
+    } if @delete_missing_entities
 end
 
 validate()
@@ -145,7 +207,9 @@ opsman_key = get_arg_value('-k', '--opsman-key')
 @ldap_bind_dn = get_arg_value('-p', '--ldap-bind-dn') || @ldap_config['bind_dn']
 @ldap_password = get_arg_value('-k', '--ldap-password') || @ldap_config['password']
 
-ignore_security_groups = @config['ignore']['security_groups']
+@delete_missing_entities = @config['delete_missing_entities']
+ignore_security_groups = @config['ignore']['security-groups']
+ignore_quotas = @config['ignore']['quotas']
 ignore_orgs = @config['ignore']['orgs']
 ignore_users = @config['ignore']['users']
 
@@ -243,6 +307,34 @@ check_error(
     'Unable login to the CloudController UAA.' )
 
 #
+# Update shared domains
+#
+
+if @config.has_key?('default-shared-domains')
+
+	default_shared_domains = @config['default-shared-domains']
+	cf_shared_domains = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/shared_domains), 
+		'Unable to retrieve shared domains.'))['resources']
+		.map{ |d| d['entity']['name'] }
+		.select{ |n| !default_shared_domains.include?(n) }
+
+	(@config['shared_domains'] || []).each { |d|
+
+		if !cf_shared_domains.include?(d)
+			puts "Creating shared domain #{d}."
+			check_error(%x(#{@cf_cli} create-shared-domain #{d}),
+				"Unable create shared domain #{d}.")    
+		end
+		cf_shared_domains.delete_if { |n| n == d }
+	}
+	cf_shared_domains.each{ |n| 
+		puts "Deleting shared domain #{n}."
+		check_error(%x(#{@cf_cli} delete-shared-domain -f #{n}), 
+			"Unable delete shared domain #{n}.")    
+	} if @delete_missing_entities
+end
+
+#
 # Update security groups
 #
 
@@ -274,11 +366,48 @@ Dir.glob('security-groups/*.json') do |rule_file|
     cf_security_group_list.delete_if { |n| n == name }
 end
 
-cf_security_group_list.each{ |n| 
-    puts "Deleting security group '#{n}."
-    check_error(%x(#{@cf_cli} delete-security-group -f #{n}), 
-        "Unable to delete security group #{n}.")    
+#
+# Update staging and running security groups
+#
+
+[ 'staging', 'running' ].each { |type| 
+
+	cf_asg_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/config/#{type}_security_groups), 
+		"Unable to retrieve the list of #{type} security groups."))['resources']
+		.map{ |asg| asg['entity']['name'] }
+		
+	(@config['security-groups']["#{type}-security-groups"] || []).each { |asg_name|
+
+		if !cf_asg_list.include?(asg_name)
+			puts "Binding ASG '#{asg_name}' to #{type} security groups."
+			check_error(%x(#{@cf_cli} bind-#{type}-security-group #{asg_name}), 
+				"Unable to bind ASG '#{asg_name}' to #{type} security group.")    
+		end
+		cf_asg_list.delete_if { |n| n == asg_name }
+		
+	} if @config.has_key?('security-groups')
+
+	cf_asg_list.each{ |n| 
+		puts "Unbinding ASG '#{n}' from #{type} security groups."
+		check_error(%x(#{@cf_cli} unbind-#{type}-security-group #{n}), 
+			"Unable to unbind ASG '#{n}' from #{type} security groups.")    
+	} if @delete_missing_entities	
 }
+
+#
+# Update Org Quotas
+#
+
+cf_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/quota_definitions), 
+    'Unable to retrieve organization quota definitions.'))['resources']
+
+cf_quota_map = {}
+cf_quotas.each{ |q| 
+	quota_name = q['entity']['name']
+    cf_quota_map[quota_name] = quota_detail(q['entity']) if !ignore_quotas.include?(quota_name)
+}
+
+cf_quota_group_list = update_quotas(cf_quota_map.keys, cf_quota_map)
 
 #
 # Create orgs and spaces and set their quotas, security groups and users
@@ -297,72 +426,103 @@ cf_spaces.each{ |s|
         (cf_spaces_map[s['entity']['organization_guid']] || []) + [ s['entity']['name'] ]
 }
 
-# cf_org_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/quota_definitions), 
-#     'Unable to retrieve organization quota definitions.'))['resources']
-# cf_org_quota_map = {}
-# cf_org_quotas.each{ |q| 
-#     cf_org_quota_map[q['metadata']['guid']] = 
-#         (cf_org_quota_map[q['metadata']['guid']] || []) + [ { 
-#             "allow-paid-service-plans" => q['entity']['non_basic_services_allowed'],
-#             "maximum-memory-per-instance" => q['entity']['instance_memory_limit'],
-#             "total-memory" => q['entity']['memory_limit'],
-#             "total-routes" => q['entity']['total_routes'],
-#             "total-services" => q['entity']['total_services']
-#         } ]
-# }
-
-# cf_space_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/space_quota_definitions), 
-#     'Unable to retrieve space quota definitions.'))['resources']
-# cf_space_quota_map = {}
-# cf_space_quotas.each{ |q| 
-#     cf_space_quota_map[q['metadata']['guid']] = 
-#         (cf_space_quota_map[q['metadata']['guid']] || []) + [ { 
-#             "allow-paid-service-plans" => q['entity']['non_basic_services_allowed'],
-#             "maximum-memory-per-instance" => q['entity']['instance_memory_limit'],
-#             "total-memory" => q['entity']['memory_limit'],
-#             "total-routes" => q['entity']['total_routes'],
-#             "total-services" => q['entity']['total_services']
-#         } ]
-# }
+cf_space_quotas = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/space_quota_definitions), 
+    'Unable to retrieve space quota definitions.'))['resources']
+cf_space_quota_map = {}
+cf_space_quotas.each{ |q| 
+	org_id = q['entity']['organization_guid']
+    cf_space_quota_map[org_id] = {} if !cf_space_quota_map.has_key?(org_id)
+    cf_space_quota_map[org_id][q['entity']['name']] = quota_detail(q['entity'])
+}
 
 Dir.glob('organizations/*.yml') do |org_file|
 
     org_details = YAML.load_file(org_file)
     org_name = org_details['name']
 
+	#
+	# Create org
+	#
+	
     if !cf_org_list.include?(org_name)
         puts "Creating organization '#{org_name}'."
         check_error(%x(#{@cf_cli} create-org '#{org_name}'), 
-            "Unable to create organization #{org_name}.")        
+            "Unable to create organization '#{org_name}'.")        
     end
 
     check_error( %x(#{@cf_cli} target -o '#{org_name}'), 
-        "Unable to target org #{org_name}.").chomp
+        "Unable to target org '#{org_name}'.").chomp
     org_id = check_error( %x(#{@cf_cli} org '#{org_name}' --guid), 
-        "Unable to retrieve id of org #{org_name}.").chomp
+        "Unable to retrieve id of org '#{org_name}'.").chomp
+
+	#
+	# Set org quota
+	#
+	
+	check_error(%x(#{@cf_cli} set-quota '#{org_name}' '#{org_details['quota']}'), 
+		"Unable to set quota for organization '#{org_name}'.") if org_details.has_key?('quota')
+
+	#
+	# Create space quotas
+	#
+	
+	if cf_space_quota_map.has_key?(org_id)
+		cf_space_quota_group_list = update_quotas(cf_space_quota_map[org_id].keys, cf_space_quota_map[org_id], org_name)
+	else
+		cf_space_quota_group_list = update_quotas([], {}, org_name)
+	end
+
+	#
+	# Set org owned private domains
+	#
+	
+	org_domain_list =  JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/domains), 
+		"Unable to retrieve private domains for org #{org_name}."))['resources']
+		.select{ |d| d['entity']['owning_organization_guid']==org_id }
+		.map{ |d| d['entity']['name'] }
+		
+	(org_details['domains'] || []).each { |d|
+
+		if !org_domain_list.include?(d)
+			puts "Creating domain #{d} for org #{org_name}."
+			check_error(%x(#{@cf_cli} create-domain '#{org_name}' '#{d}'),
+				"Unable domain #{d} for org #{org_name}.")    
+		end
+		org_domain_list.delete_if { |n| n == d }
+	}
+	org_domain_list.each{ |n| 
+		puts "Deleting domain #{n} from org #{org_name}."
+		check_error(%x(#{@cf_cli} delete-domain -f #{n}), 
+			"Unable to domain #{n}.")    
+	} if @delete_missing_entities
+	
+	#
+	# Add users to org and set roles
+	#
 
     cf_org_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/managers), 
         'Unable to retrieve the list of users who are org managers.'))['resources']
         .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-    set_org_role(org_details['org-managers'], cf_org_manager_list, org_name, 'OrgManager') \
-        if org_details.has_key?('org-managers')
+    set_org_role(org_details['org-managers'] || [], cf_org_manager_list, org_name, 'OrgManager')
     cf_org_billing_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/billing_managers), 
         'Unable to retrieve the list of users who are billing managers.'))['resources']
         .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-    set_org_role(org_details['billing-managers'], cf_org_billing_manager_list, org_name, 'BillingManager') \
-        if org_details.has_key?('billing-managers')
+    set_org_role(org_details['billing-managers'] || [], cf_org_billing_manager_list, org_name, 'BillingManager')
     cf_org_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/auditors), 
         'Unable to retrieve the list of users who are org auditors.'))['resources']
         .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-    set_org_role(org_details['org-auditors'], cf_org_auditor_list, org_name, 'OrgAuditor') \
-        if org_details.has_key?('org-auditors')
+    set_org_role(org_details['org-auditors'] || [], cf_org_auditor_list, org_name, 'OrgAuditor')
 
-    cf_space_list = cf_spaces_map[org_id]
+    cf_space_list = cf_spaces_map[org_id] || []
 
     org_details['spaces'].each{ |s| 
 
         space_name = s['name']
 
+		#
+		# Create space
+		#
+        
         if cf_space_list.nil? || !cf_space_list.include?(space_name)
             puts "Creating space '#{s}'."
             check_error(%x(#{@cf_cli} create-space #{space_name} -o '#{org_name}'), 
@@ -372,35 +532,106 @@ Dir.glob('organizations/*.yml') do |org_file|
         space_id = check_error( %x(#{@cf_cli} space '#{space_name}' --guid), 
             "Unable to retrieve id of space #{space_name}.").chomp
 
+		#
+		# Set space quota
+		#
+        
+		current_quota_name = check_error(%x(#{@cf_cli} space '#{space_name}' | awk '/Space Quota/{ print $3 }'), 
+			"Unable to parse current quota for '#{space_name}' in organization '#{org_name}'.").chomp
+		new_quota_name = s['quota'] || ''
+		
+		if current_quota_name != new_quota_name
+			puts "Update quota for space '#{space_name}'."
+			check_error(%x(#{@cf_cli} unset-space-quota '#{space_name}' '#{current_quota_name}'), 
+				"Unable to unset space quota for space '#{space_name}' in organization '#{org_name}'.") if !current_quota_name.empty?
+			check_error(%x(#{@cf_cli} set-space-quota '#{space_name}' '#{new_quota_name}'), 
+				"Unable to set space quota for space '#{space_name}' in organization '#{org_name}'.") if !new_quota_name.empty?
+		end
+
+		#
+		# Associated ASGs with space
+		#
+            
+		cf_space_asg_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/security_groups), 
+			'Unable to retrieve the list of security groups for space #{space_name}.'))['resources']
+			.select{ |asg| !asg['entity']['running_default'] && !asg['entity']['staging_default'] }
+			.map{ |asg| asg['entity']['name'] }
+		
+		(s['security-groups'] || []).each { |asg_name|
+		
+			if !cf_space_asg_list.include?(asg_name)
+				puts "Binding ASG '#{asg_name}' to space '#{space_name}'."
+				check_error(%x(#{@cf_cli} bind-security-group #{asg_name} #{org_name} #{space_name}), 
+					"Unable to bind ASG '#{asg_name}' from space '#{space_name}'.")    
+			end
+		
+			cf_space_asg_list.delete_if { |n| n == asg_name }
+		}
+		cf_space_asg_list.each{ |n| 
+			puts "Unbinding ASG '#{n}' from space '#{space_name}'."
+			check_error(%x(#{@cf_cli} unbind-security-group #{n} #{org_name} #{space_name}), 
+				"Unable to unbind ASG '#{n}' from space '#{space_name}'.")    
+		} if @delete_missing_entities
+
+		#
+		# Add users to space and set roles
+		#
+
         cf_space_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/managers), 
             'Unable to retrieve the list of users who are space managers.'))['resources']
             .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-        set_space_role(s['space-managers'], cf_space_manager_list, org_name, space_name, 'SpaceManager') \
-            if s.has_key?('space-managers')
+        set_space_role(s['space-managers'] || [], cf_space_manager_list, org_name, space_name, 'SpaceManager')
         cf_space_developer_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/developers), 
             'Unable to retrieve the list of users who are space developers.'))['resources']
             .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-        set_space_role(s['space-developers'], cf_space_developer_list, org_name, space_name, 'SpaceDeveloper') \
-            if s.has_key?('space-developers')
+        set_space_role(s['space-developers'] || [], cf_space_developer_list, org_name, space_name, 'SpaceDeveloper')
         cf_space_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/auditors), 
             'Unable to retrieve the list of users who are space auditors.'))['resources']
             .map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-        set_space_role(s['space-auditors'], cf_space_auditor_list, org_name, space_name, 'SpaceAuditor') \
-            if s.has_key?('space-auditors')
+        set_space_role(s['space-auditors'] || [], cf_space_auditor_list, org_name, space_name, 'SpaceAuditor')
 
         cf_space_list.delete_if { |n| n == space_name }
     }
     cf_space_list.each{ |n| 
-        puts "Deleting space '#{n}."
-        check_error(%x(#{@cf_cli} target -o '#{org_name}'; cf delete-space -f #{n}), 
-            "Unable to delete space '#{n}' in org '#{org_name}.")    
-    }
+        puts "Deleting space '#{n}'."
+        check_error(%x(#{@cf_cli} target -o '#{org_name}'; #{@cf_cli} delete-space -f #{n}), 
+            "Unable to delete space '#{n}' in org '#{org_name}'.")    
+    } if @delete_missing_entities
+	cf_space_quota_group_list.each{ |n| 
+		puts "Deleting space quota '#{n}."
+		check_error(%x(#{@cf_cli} delete-space-quota #{n} -f), 
+			"Unable to delete space quota #{n}.")    
+	} if @delete_missing_entities
 
     cf_org_list.delete_if { |n| n == org_name }
 end
 
+#
+# Delete organizations not found in configuration
+#
+
 cf_org_list.each{ |n| 
     puts "Deleting org '#{n}."
-    check_error(%x(#{@cf_cli} delete-org -f #{n}), 
+    check_error(%x(#{@cf_cli} delete-org -f '#{n}'), 
         "Unable to delete org #{n}.")    
-}
+} if @delete_missing_entities
+
+#
+# Delete security groups not found in configuration
+#
+
+cf_security_group_list.each{ |n| 
+    puts "Deleting security group '#{n}."
+    check_error(%x(#{@cf_cli} delete-security-group -f #{n}), 
+        "Unable to delete security group #{n}.")    
+} if @delete_missing_entities
+
+#
+# Delete quotas not found in configuration
+#
+
+cf_quota_group_list.each{ |n| 
+    puts "Deleting org quota '#{n}."
+    check_error(%x(#{@cf_cli} delete-quota #{n} -f), 
+        "Unable to delete org quota #{n}.")    
+} if @delete_missing_entities
