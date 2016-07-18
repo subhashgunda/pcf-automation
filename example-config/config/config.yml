@@ -1,0 +1,17 @@
+---
+
+default-shared-domains: [ 'cfapps-02.haas-40.pez.pivotal.io' ]
+shared_domains: [ 'shared1.acme.com', 'shared2.acme.com' ]
+
+security-groups:
+    staging-security-groups: [ 'default_security_group' ]
+    running-security-groups: [ 'default_security_group' ]
+    
+# Deletes any entities that are missing from source 
+# control and not in ignore lists if set to true
+delete_missing_entities: true
+ignore:
+    security-groups: [ 'default_security_group', 'metrics-api' ]
+    quotas: [ 'cloud-native-quota', 'p-spring-cloud-services', 'apigee-cf-service-broker-org-quota' ]
+    orgs: [ 'system', 'p-spring-cloud-services', 'apigee-cf-service-broker-org', 'cloud-native' ]
+    users: [ 'admin' ]

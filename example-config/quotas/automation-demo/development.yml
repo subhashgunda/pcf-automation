@@ -1,0 +1,8 @@
+---
+allow-paid-service-plans: false
+instance-memory: 512
+total-app-instances: 20
+total-memory: 10240
+total-routes: 100
+total-services: 50
+

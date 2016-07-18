@@ -1,0 +1,26 @@
+---
+name: automation-demo
+quota: 'runaway'
+domains: [ 'staging-auto-demo.acme.com', 'production-auto-demo.acme.com' ]
+org-managers: [ 'dev-manager@acme.com' ]
+org-auditors: [ 'app-auditor@acme.com' ]
+spaces:
+- name: Sandbox
+  quota: 'development'
+  security-groups: [ 'pcf-network' ]
+  space-managers: [ 'team-lead@acme.com' ]
+  space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com', 'intern-dev1@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Development
+  quota: 'development'
+  space-managers: [ 'team-lead@acme.com' ]
+  space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Staging
+  security-groups: [ 'mysql','rabbitmq' ]
+  space-managers: [ 'prod-support@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
+- name: Production
+  security-groups: [ 'mysql','rabbitmq' ]
+  space-managers: [ 'prod-support@acme.com' ]
+  space-auditors:  [ 'app-auditor@acme.com' ]
