@@ -21,19 +21,19 @@ def show_usage()
 	puts "USAGE: configure_ert [arguments]"
 	puts
 	puts "Options:"
-	puts "	--help				Show usage options and arguments"
+	puts "	--help               Show usage options and arguments"
 	puts
 	puts "Arguments:"
-	puts "	-o, --opsman-host	 PCF Ops Manager host"
-	puts "	-u, --opsman-user	 PCF Ops Manager login user"
-	puts "	-p, --opsman-passwd   PCF Ops Manager login user's password"
-	puts "	-k, --opsman-key	  PCF Ops Manager decryption key only required after restart [optional]"
+	puts "	-o, --opsman-host    PCF Ops Manager host"
+	puts "	-u, --opsman-user    PCF Ops Manager login user"
+	puts "	-p, --opsman-passwd  PCF Ops Manager login user's password"
+	puts "	-k, --opsman-key     PCF Ops Manager decryption key only required after restart [optional]"
 	puts
 	puts "	The following optional arguments can also be provided via config.yml"
-	puts "	-l, --ldap-host	   LDAP host"
-	puts "	-t, --ldap-port	   LDAP port"
-	puts "	-d, --ldap-bind-dn	LDAP bind distinguished name"
-	puts "	-w, --ldap-password   LDAP bind password"
+	puts "	-l, --ldap-host      LDAP host"
+	puts "	-t, --ldap-port      LDAP port"
+	puts "	-d, --ldap-bind-dn   LDAP bind distinguished name"
+	puts "	-w, --ldap-password  LDAP bind password"
 	puts
 
 	exit 0
@@ -237,13 +237,40 @@ end
 # Login to OpsManager
 #
 
-puts "Logging into PCF Ops Manager."
-
 check_error( %x(#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation),
 	'Unable to target Ops Manager\'s UAA' )
 
-check_error(%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'),
-	'Unable to get uaac token from Ops Manager UAA.')
+if !opsman_key.nil?
+
+	puts "Unlocking Ops Manager."
+	check_error(
+		%x(curl -k https://#{opsman_host}/api/v0/unlock \
+			-X PUT \
+			-H "Content-Type: application/x-www-form-urlencoded" \
+			-d "passphrase=#{opsman_key}" 2> /dev/null),
+		'Unable to unlock Ops Manager.')
+
+	retries = 6
+	while retries>0
+		puts "Logging into PCF Ops Manager."
+		res = %x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}')
+		if $?.success?
+			break
+		end
+		puts "Waiting 10s for Ops Manager authentication system to come up."
+		sleep 10
+		retries -= 1
+	end
+	if retries==0
+		puts "ERROR: Unable to log into PCF Ops Manager as " +
+			"authentication system is taking too long to initialize."
+		exit 1
+	end
+else
+	puts "Logging into PCF Ops Manager."
+	check_error(%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'),
+		'Unable to get uaac token from Ops Manager UAA.')
+end
 
 access_token = check_error(%x(#{@uaac} context | awk '/access_token:/{ print $2 }'),
 	'Unable to get uaac access token value from context.')
