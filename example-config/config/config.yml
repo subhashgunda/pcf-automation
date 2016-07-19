@@ -1,13 +1,13 @@
 ---
 
 default-shared-domains: [ 'apps.acme.com' ]
-shared_domains: [ 'shared1.acme.com', 'shared2.acme.com' ]
+shared-domains: [ 'shared1.acme.com', 'shared2.acme.com' ]
 
 security-groups:
     staging-security-groups: [ 'default_security_group' ]
     running-security-groups: [ 'default_security_group' ]
-    
-# Deletes any entities that are missing from source 
+
+# Deletes any entities that are missing from source
 # control and not in ignore lists if set to true
 delete_missing_entities: true
 ignore:
