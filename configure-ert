@@ -155,7 +155,9 @@ def add_user(user)
 	end
 end
 
-def set_org_role(user_list, existing_list, org, role)
+def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
+
+	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
 		if !existing_list.include?(u)
@@ -170,10 +172,12 @@ def set_org_role(user_list, existing_list, org, role)
 		puts "Removing #{role} role for user #{u} in org '#{org}'."
 		check_error(%x(#{@cf_cli} unset-org-role #{u} '#{org}' #{role}),
 			"Unable to unset org role.")
-	} if @delete_missing_entities
+	} if delete_missing_entities
 end
 
-def set_space_role(user_list, existing_list, org, space, role)
+def set_space_role(user_list, existing_list, org, space, role, delete_missing_entities)
+
+	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
 		if !existing_list.include?(u)
@@ -188,7 +192,7 @@ def set_space_role(user_list, existing_list, org, space, role)
 		puts "Removing #{role} role for user #{u} in org '#{org}' and space '#{space}'."
 		check_error(%x(#{@cf_cli} unset-space-role #{u} '#{org}' '#{space}' #{role}),
 			"Unable to unset org role.")
-	} if @delete_missing_entities
+	} if delete_missing_entities
 end
 
 show_usage if has_option('-h', '--help')
@@ -207,7 +211,7 @@ opsman_key = get_arg_value('-k', '--opsman-key')
 @ldap_bind_dn = get_arg_value('-d', '--ldap-bind-dn') || @ldap_config['bind-dn']
 @ldap_password = get_arg_value('-w', '--ldap-password') || @ldap_config['password']
 
-@delete_missing_entities = @config['delete_missing_entities']
+@delete_missing_entities = @config['delete-missing-entities']
 ignore_security_groups = @config['ignore']['security-groups']
 ignore_quotas = @config['ignore']['quotas']
 ignore_orgs = @config['ignore']['orgs']
@@ -467,6 +471,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 
 	org_details = YAML.load_file(org_file)
 	org_name = org_details['name']
+	org_delete_missing_entities = org_details['delete-missing-entities'] || @delete_missing_entities
 
 	#
 	# Create org
@@ -522,7 +527,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 		puts "Deleting domain #{n} from org #{org_name}."
 		check_error(%x(#{@cf_cli} delete-domain -f #{n}),
 			"Unable to domain #{n}.")
-	} if @delete_missing_entities
+	} if org_delete_missing_entities
 
 	#
 	# Add users to org and set roles
@@ -531,15 +536,20 @@ Dir.glob('organizations/*.yml') do |org_file|
 	cf_org_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/managers),
 		'Unable to retrieve the list of users who are org managers.'))['resources']
 		.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-	set_org_role(org_details['org-managers'] || [], cf_org_manager_list, org_name, 'OrgManager')
+	set_org_role(org_details['org-managers'] || [], cf_org_manager_list,
+		org_name, 'OrgManager', org_delete_missing_entities)
+
 	cf_org_billing_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/billing_managers),
 		'Unable to retrieve the list of users who are billing managers.'))['resources']
 		.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-	set_org_role(org_details['billing-managers'] || [], cf_org_billing_manager_list, org_name, 'BillingManager')
+	set_org_role(org_details['billing-managers'] || [], cf_org_billing_manager_list,
+		org_name, 'BillingManager', org_delete_missing_entities)
+
 	cf_org_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/organizations/#{org_id}/auditors),
 		'Unable to retrieve the list of users who are org auditors.'))['resources']
 		.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-	set_org_role(org_details['org-auditors'] || [], cf_org_auditor_list, org_name, 'OrgAuditor')
+	set_org_role(org_details['org-auditors'] || [], cf_org_auditor_list,
+		org_name, 'OrgAuditor', org_delete_missing_entities)
 
 	cf_space_list = cf_spaces_map[org_id] || []
 
@@ -599,7 +609,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 			puts "Unbinding ASG '#{n}' from space '#{space_name}'."
 			check_error(%x(#{@cf_cli} unbind-security-group #{n} #{org_name} #{space_name}),
 				"Unable to unbind ASG '#{n}' from space '#{space_name}'.")
-		} if @delete_missing_entities
+		} if org_delete_missing_entities
 
 		#
 		# Add users to space and set roles
@@ -608,15 +618,20 @@ Dir.glob('organizations/*.yml') do |org_file|
 		cf_space_manager_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/managers),
 			'Unable to retrieve the list of users who are space managers.'))['resources']
 			.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-		set_space_role(s['space-managers'] || [], cf_space_manager_list, org_name, space_name, 'SpaceManager')
+		set_space_role(s['space-managers'] || [], cf_space_manager_list,
+			org_name, space_name, 'SpaceManager', org_delete_missing_entities)
+
 		cf_space_developer_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/developers),
 			'Unable to retrieve the list of users who are space developers.'))['resources']
 			.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-		set_space_role(s['space-developers'] || [], cf_space_developer_list, org_name, space_name, 'SpaceDeveloper')
+		set_space_role(s['space-developers'] || [], cf_space_developer_list,
+			org_name, space_name, 'SpaceDeveloper', org_delete_missing_entities)
+
 		cf_space_auditor_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/spaces/#{space_id}/auditors),
 			'Unable to retrieve the list of users who are space auditors.'))['resources']
 			.map{ |s| s['entity']['username'] }.select { |n| !ignore_users.include?(n) }
-		set_space_role(s['space-auditors'] || [], cf_space_auditor_list, org_name, space_name, 'SpaceAuditor')
+		set_space_role(s['space-auditors'] || [], cf_space_auditor_list,
+			org_name, space_name, 'SpaceAuditor', org_delete_missing_entities)
 
 		cf_space_list.delete_if { |n| n == space_name }
 	}
@@ -624,12 +639,12 @@ Dir.glob('organizations/*.yml') do |org_file|
 		puts "Deleting space '#{n}'."
 		check_error(%x(#{@cf_cli} target -o '#{org_name}'; #{@cf_cli} delete-space -f #{n}),
 			"Unable to delete space '#{n}' in org '#{org_name}'.")
-	} if @delete_missing_entities
+	} if org_delete_missing_entities
 	cf_space_quota_group_list.each{ |n|
 		puts "Deleting space quota '#{n}."
 		check_error(%x(#{@cf_cli} delete-space-quota #{n} -f),
 			"Unable to delete space quota #{n}.")
-	} if @delete_missing_entities
+	} if org_delete_missing_entities
 
 	cf_org_list.delete_if { |n| n == org_name }
 end
