@@ -9,7 +9,8 @@ default-security-groups:
 
 # Deletes any entities that are missing from source
 # control and not in ignore lists if set to true
-delete_missing_entities: true
+delete-missing-entities: true
+
 ignore:
     security-groups: [ 'metrics-api' ]
     quotas: [ 'cloud-native-quota', 'p-spring-cloud-services', 'apigee-cf-service-broker-org-quota' ]
