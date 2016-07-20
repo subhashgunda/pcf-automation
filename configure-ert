@@ -318,6 +318,8 @@ cloud_controller_settings = installation_settings['products'].select{ |p| p['gui
 cf_system_domain = cloud_controller_settings['properties'].select{ |p| p['identifier']=='system_domain' }.first['value']
 cf_apps_domain = cloud_controller_settings['properties'].select{ |p| p['identifier']=='apps_domain' }.first['value']
 
+cf_base_shared_domain = cf_apps_domain[/[-_a-zA-Z0-9]+\.(.*)/, 1]
+
 #
 # Login to Elastic Runtime
 #
@@ -350,6 +352,10 @@ if @config.has_key?('shared-domains')
 		.select{ |n| !default_shared_domains.include?(n) }
 
 	(@config['shared-domains'] || []).each { |d|
+
+		if d=~/^[-_a-zA-Z0-9]+$/
+			d += '.' + cf_base_shared_domain
+		end
 
 		if !cf_shared_domains.include?(d)
 			puts "Creating shared domain #{d}."
