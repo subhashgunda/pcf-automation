@@ -30,8 +30,7 @@ def show_usage()
 	puts "	-k, --opsman-key     PCF Ops Manager decryption key only required after restart [optional]"
 	puts
 	puts "	The following optional arguments can also be provided via config.yml"
-	puts "	-l, --ldap-host      LDAP host"
-	puts "	-t, --ldap-port      LDAP port"
+	puts "	-l, --ldap-url       LDAP url"
 	puts "	-d, --ldap-bind-dn   LDAP bind distinguished name"
 	puts "	-w, --ldap-password  LDAP bind password"
 	puts
@@ -135,12 +134,14 @@ def add_user(user)
 			{ 'value' => user }
 		] }
 
-	if !@ldap_host.nil?
+	if !@ldap_url.nil?
 		user_data['origin'] = 'ldap'
 
-		user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -h #{@ldap_host} -p #{@ldap_port} \
+		user_search_query = eval("\"" + @ldap_config['user-search-query'] + "\"")
+
+		user_data['externalId'] = check_error( %x(#{@ldapsearch_cli} -H #{@ldap_url} \
 			-D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
-			-b '#{@ldap_config['user_search_base']}'  mail='#{user}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }' ),
+			-b '#{@ldap_config['user-search-base']}' '#{user_search_query}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }'),
 			"LDAP query for user '#{user}' failed." )
 
 		user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'),
@@ -190,9 +191,9 @@ def set_space_role(user_list, existing_list, org, space, role)
 	} if @delete_missing_entities
 end
 
-validate()
-
 show_usage if has_option('-h', '--help')
+
+validate()
 
 opsman_host = get_arg_value('-o', '--opsman-host', true)
 opsman_user = get_arg_value('-u', '--opsman-user', true)
@@ -202,10 +203,9 @@ opsman_key = get_arg_value('-k', '--opsman-key')
 @config = File.exist?('config/config.yml') ? YAML.load_file('config/config.yml') : []
 @ldap_config = @config['ldap'] || {}
 
-@ldap_host = get_arg_value('-u', '--ldap-host') || @ldap_config['host']
-@ldap_port = get_arg_value('-u', '--ldap-port') || @ldap_config['port']
-@ldap_bind_dn = get_arg_value('-p', '--ldap-bind-dn') || @ldap_config['bind_dn']
-@ldap_password = get_arg_value('-k', '--ldap-password') || @ldap_config['password']
+@ldap_url = get_arg_value('-l', '--ldap-url') || @ldap_config['url']
+@ldap_bind_dn = get_arg_value('-d', '--ldap-bind-dn') || @ldap_config['bind-dn']
+@ldap_password = get_arg_value('-w', '--ldap-password') || @ldap_config['password']
 
 @delete_missing_entities = @config['delete_missing_entities']
 ignore_security_groups = @config['ignore']['security-groups']
@@ -337,9 +337,9 @@ check_error(
 # Update shared domains
 #
 
-if @config.has_key?('default-shared-domains')
+if @config.has_key?('shared-domains')
 
-	default_shared_domains = @config['default-shared-domains']
+	default_shared_domains = (@config['default-shared-domains'] || []) + [ cf_apps_domain ]
 	cf_shared_domains = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/shared_domains),
 		'Unable to retrieve shared domains.'))['resources']
 		.map{ |d| d['entity']['name'] }
@@ -397,29 +397,30 @@ end
 # Update staging and running security groups
 #
 
-[ 'staging', 'running' ].each { |type|
+if @config.has_key?('default-security-groups')
+	[ 'staging', 'running' ].each { |type|
 
-	cf_asg_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/config/#{type}_security_groups),
-		"Unable to retrieve the list of #{type} security groups."))['resources']
-		.map{ |asg| asg['entity']['name'] }
+		cf_asg_list = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/config/#{type}_security_groups),
+			"Unable to retrieve the list of #{type} security groups."))['resources']
+			.map{ |asg| asg['entity']['name'] }
 
-	(@config['security-groups']["#{type}-security-groups"] || []).each { |asg_name|
+		(@config['default-security-groups']["#{type}"] || []).each { |asg_name|
 
-		if !cf_asg_list.include?(asg_name)
-			puts "Binding ASG '#{asg_name}' to #{type} security groups."
-			check_error(%x(#{@cf_cli} bind-#{type}-security-group #{asg_name}),
-				"Unable to bind ASG '#{asg_name}' to #{type} security group.")
-		end
-		cf_asg_list.delete_if { |n| n == asg_name }
+			if !cf_asg_list.include?(asg_name)
+				puts "Binding ASG '#{asg_name}' to #{type} security groups."
+				check_error(%x(#{@cf_cli} bind-#{type}-security-group #{asg_name}),
+					"Unable to bind ASG '#{asg_name}' to #{type} security group.")
+			end
+			cf_asg_list.delete_if { |n| n == asg_name }
+		}
 
-	} if @config.has_key?('security-groups')
-
-	cf_asg_list.each{ |n|
-		puts "Unbinding ASG '#{n}' from #{type} security groups."
-		check_error(%x(#{@cf_cli} unbind-#{type}-security-group #{n}),
-			"Unable to unbind ASG '#{n}' from #{type} security groups.")
-	} if @delete_missing_entities
-}
+		cf_asg_list.each{ |n|
+			puts "Unbinding ASG '#{n}' from #{type} security groups."
+			check_error(%x(#{@cf_cli} unbind-#{type}-security-group #{n}),
+				"Unable to unbind ASG '#{n}' from #{type} security groups.")
+		}
+	}
+end
 
 #
 # Update Org Quotas
