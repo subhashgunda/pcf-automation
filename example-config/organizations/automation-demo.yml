@@ -7,7 +7,7 @@ org-auditors: [ 'app-auditor@acme.com' ]
 spaces:
 - name: Sandbox
   quota: 'development'
-  security-groups: [ 'pcf-network' ]
+  security-groups: [ 'pcf_network' ]
   space-managers: [ 'team-lead@acme.com' ]
   space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com', 'intern-dev1@acme.com' ]
   space-auditors:  [ 'app-auditor@acme.com' ]
