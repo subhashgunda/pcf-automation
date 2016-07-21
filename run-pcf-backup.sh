@@ -15,8 +15,16 @@ set -e
 	echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
 	exit 1
 )
+[ -z "@option.opsman-password@" ] && (
+	echo "ERROR! The Rundeck job runtime variable \"opsman-password\" has not been set."
+	exit 1
+)
 [ -z "@node.opsman-ssh-user@" ] && (
-	echo "ERROR! The Rundeck node environment variable \".opsman-ssh-user\" has not been set."
+	echo "ERROR! The Rundeck node environment variable \"opsman-ssh-user\" has not been set."
+	exit 1
+)
+[ -z "@option.opsman-ssh-password@" ] && (
+	echo "ERROR! The Rundeck job runtime variable \"opsman-ssh-password\" has not been set."
 	exit 1
 )
 
@@ -94,6 +102,7 @@ for t in ${tiles[*]}; do
 	if [[ $? -ne 0 ]]; then
 		rm -fr $BACKUP_TIMESTAMP_DIR
 		echo "ERROR! Backup of tile '$t' failed."
+		exit 1
 	fi
 done
 
