@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 set -e
 
 [ -z "@node.bitbucket@" ] && (
@@ -90,4 +90,4 @@ else
 fi
 
 set +e
-set +x
+#set +x
