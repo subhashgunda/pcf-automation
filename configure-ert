@@ -135,6 +135,12 @@ def add_user(user)
 		] }
 
 	if !@ldap_url.nil?
+
+		if @ldap_password.nil?
+			puts "ERROR: The password for ldap bind user #{@ldap_bind_dn} was not provided."
+			exit 1
+		end
+
 		user_data['origin'] = 'ldap'
 
 		user_search_query = eval("\"" + @ldap_config['user-search-query'] + "\"")
