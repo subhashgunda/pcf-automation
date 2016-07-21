@@ -3,26 +3,59 @@
 set -x
 set -e
 
-if [[ "@option.clean@" == "1" ]]; then
-	rm -fr /tmp/pcf-config
+[ -z "@node.bitbucket@" ] && (
+	echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+	exit 1
+)
+[ -z "@node.opsman-host@" ] && (
+	echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
+	exit 1
+)
+[ -z "@node.opsman-user@" ] && (
+	echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
+	exit 1
+)
+[ -z "@node.pcf-config@" ] && (
+	echo "ERROR! The Rundeck node environment variable \"pcf-config\" has not been set."
+	exit 1
+)
+[ -z "@option.opsman-password@" ] && (
+	echo "ERROR! The Ops Manager administration UI password needs to be provided."
+	exit 1
+)
+
+DOWNLOADS_DIR=$HOME/workspace/downloads
+SCRIPTS_DIR=$HOME/workspace/scripts
+CONFIG_DIR=$HOME/workspace/configs
+BACKUP_DIR=$HOME/workspace/backups
+
+if [ "@option.clean@" == "1" ]; then
+	rm -fr $DOWNLOADS_DIR
+	rm -fr $SCRIPTS_DIR
+	rm -fr $CONFIG_DIR
 fi
 
-mkdir -p /tmp/pcf-config
-cd /tmp/pcf-config
+mkdir -p $DOWNLOADS_DIR
+mkdir -p $CONFIG_DIR
+mkdir -p $BACKUP_DIR
 
-export PATH=/tmp/pcf-config/pcf-automation:$PATH
+export PATH=$SCRIPTS_DIR:$PATH
 
-if [[ ! -e pcf-automation ]]; then
-	curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation -o pcf-automation.zip
-	unzip  -o pcf-automation.zip -d pcf-automation
+if [[ ! -e $SCRIPTS_DIR ]]; then
+
+	curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
+		-o $DOWNLOADS_DIR/pcf-automation.zip
+
+	unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
 fi
 
-curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-config-ch-dev -o pcf-config-ch-dev.zip
+curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/@node.pcf-config@ \
+	-o $DOWNLOADS_DIR/@node.pcf-config@.zip
 
 run_job=1
-if [[ -e pcf-config-ch-dev.zip.last ]]; then
+if [[ -e $DOWNLOADS_DIR/@node.pcf-config@.zip.last ]]; then
 	set +e
-    diff pcf-config-ch-dev.zip pcf-config-ch-dev.zip.last
+    diff $DOWNLOADS_DIR/@node.pcf-config@.zip $DOWNLOADS_DIR/@node.pcf-config@.zip.last
     if [[ $? -ne 2 ]]; then
         run_job=0
     fi
@@ -33,20 +66,27 @@ if [[ $run_job -eq 1 ]]; then
 
     echo "Running Configuration!"
 
-	rm -fr pcf-config-ch-dev
-	unzip  -o pcf-config-ch-dev.zip -d pcf-config-ch-dev
+	rm -fr $CONFIG_DIR/@node.pcf-config@
+	unzip -o $DOWNLOADS_DIR/@node.pcf-config@.zip -d $CONFIG_DIR/@node.pcf-config@
 
-	cd pcf-config-ch-dev
-	if [ "@option.opsman-key@" = "" ]; then
-		configure-ert -o @option.opsman-host@ -u @option.opsman-user@ -p @option.opsman-password@
+	cd $CONFIG_DIR/@node.pcf-config@
+	if [ -z "@option.opsman-key@" ]; then
+
+		configure-ert -o @node.opsman-host@ \
+			-u '@node.opsman-user@' \
+			-p '@option.opsman-password@' \
+			-w '@option.ldap-bind-password@'
 	else
-		configure-ert -o @option.opsman-host@ -u @option.opsman-user@ -p @option.opsman-password@ -k @option.opsman-key@
+		configure-ert -o @node.opsman-host@ \
+			-u '@node.opsman-user@' \
+			-p '@option.opsman-password@' \
+			-w '@option.ldap-bind-password@' \
+			-k '@option.opsman-key@'
 	fi
-	cd ..
 
-    mv pcf-config-ch-dev.zip pcf-config-ch-dev.zip.last
+    mv $DOWNLOADS_DIR/@node.pcf-config@.zip $DOWNLOADS_DIR/@node.pcf-config@.zip.last
 else
-    rm pcf-config-ch-dev.zip
+    rm $DOWNLOADS_DIR/@node.pcf-config@.zip
 fi
 
 set +e
