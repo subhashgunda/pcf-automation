@@ -8,7 +8,7 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-    filter: 'tags: DEV'
+    filter: 'tags: pcf-dev'
   nodesSelectedByDefault: true
   options:
   - description: Set this value to '1' to update the scripts from source control.

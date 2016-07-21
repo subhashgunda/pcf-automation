@@ -1,7 +1,7 @@
 - description: PCF Backup
   executionEnabled: true
   loglevel: INFO
-  name: pcf-backup
+  name: pcf-backup-dev
   nodefilters:
     dispatch:
       excludePrecedence: true
