@@ -163,6 +163,9 @@ end
 
 def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
 
+	user_list = user_list.map(&:downcase)
+	existing_list = existing_list.map(&:downcase)
+
 	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
@@ -182,6 +185,9 @@ def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
 end
 
 def set_space_role(user_list, existing_list, org, space, role, delete_missing_entities)
+
+	user_list = user_list.map(&:downcase)
+	existing_list = existing_list.map(&:downcase)
 
 	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
