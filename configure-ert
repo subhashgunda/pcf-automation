@@ -501,6 +501,8 @@ Dir.glob('organizations/*.yml') do |org_file|
 		org_name = org_details['name']
 		org_delete_missing_entities = org_details['delete-missing-entities'] || @delete_missing_entities
 
+		puts "Configuring organization '#{org_name}'."
+
 		#
 		# Create org
 		#
