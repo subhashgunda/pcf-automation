@@ -132,7 +132,8 @@ def add_user(user)
 		'origin' => 'uaa',
 		'emails' => [
 			{ 'value' => user }
-		] }
+		]
+	}
 
 	if !@ldap_url.nil?
 
@@ -159,6 +160,8 @@ def add_user(user)
 		check_error( %x(#{@cf_cli} create-user #{user} 'ChangeMe'),
 			'Unable to create user to #{user}.' )
 	end
+
+	# Create an org for the user with a sandbox space
 end
 
 def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
@@ -490,7 +493,23 @@ Dir.glob('organizations/*.yml') do |org_file|
 	orgs = []
 	org_data = YAML.load_file(org_file)
 
-	if org_data.has_key?('organizations')
+	if org_data.has_key?('users')
+
+		org_data['users'].each do |user|
+			orgs += [ {
+
+				'name' => user,
+				'quota' => org_data['default_quota'],
+				'org-managers' => [ user ],
+				'spaces' => [ {
+					'name' => org_data['default_space'],
+					'space-managers' => [ user ],
+					'space-developers' => [ user ]
+				} ]
+			} ]
+		end
+
+	elsif org_data.has_key?('organizations')
 		orgs = org_data['organizations']
 	else
 		orgs += [ org_data ]
