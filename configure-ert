@@ -151,6 +151,11 @@ def add_user(user)
 			-b '#{@ldap_config['user-search-base']}' '#{user_search_query}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }'),
 			"LDAP query for user '#{user}' failed." )
 
+		if user_data['externalId'].empty?
+			puts "Unable to find LDAP user with mail attributed '#{user}'."
+			exit 1
+		end
+
 		user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'),
 			'Unable to create user in UAA.').split(/RESPONSE BODY:/)[1])
 
@@ -728,3 +733,38 @@ cf_quota_group_list.each{ |n|
 	check_error(%x(#{@cf_cli} delete-quota #{n} -f),
 		"Unable to delete org quota #{n}.")
 } if @delete_missing_entities
+
+# Clean up LDAP users that no long exist in LDAP
+
+if !@ldap_url.nil?
+
+	ldap_users = JSON.parse(check_error( %x(#{@cf_cli} curl /v2/users),
+		"Unable to retrieve list of all users."))['resources']
+		.map{ |d| d['entity']['username'] }
+		.select{ |u|
+
+			if !u.nil?
+
+				origin = check_error( %x(#{@uaac} user get #{u} | awk '/origin:/{ print $2 }'),
+					"Unable to retrieve user #{u} from uaa.").chomp == 'ldap'
+			else
+				false
+			end
+		}
+
+	ldap_users.each do |user|
+
+		user_search_query = eval("\"" + @ldap_config['user-search-query'] + "\"")
+		puts "#{user_search_query}"
+
+		dn = %x(#{@ldapsearch_cli} -H #{@ldap_url} \
+			-D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
+			-b '#{@ldap_config['user-search-base']}' '#{user_search_query}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }')
+
+		if dn.empty?
+			puts "Deleting user #{user}."
+			check_error(%x(#{@cf_cli} delete-user #{user} -f),
+				"Unable to delete user #{user}.")
+		end
+	end
+end
