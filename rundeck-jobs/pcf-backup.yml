@@ -34,121 +34,64 @@
     - script: |
         #!/bin/bash
 
-        #set -x
-        set -e
+        #
+        # Rundeck variables
+        #
 
         [ -z "@node.bitbucket@" ] && (
-        	echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+            exit 1
         )
         [ -z "@node.opsman-host@" ] && (
-        	echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
+            exit 1
         )
         [ -z "@node.opsman-user@" ] && (
-        	echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
+            exit 1
         )
         [ -z "@option.opsman-password@" ] && (
-        	echo "ERROR! The Rundeck job runtime variable \"opsman-password\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck job runtime variable \"opsman-password\" has not been set."
+            exit 1
         )
         [ -z "@node.opsman-ssh-user@" ] && (
-        	echo "ERROR! The Rundeck node environment variable \"opsman-ssh-user\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck node environment variable \"opsman-ssh-user\" has not been set."
+            exit 1
         )
         [ -z "@option.opsman-ssh-password@" ] && (
-        	echo "ERROR! The Rundeck job runtime variable \"opsman-ssh-password\" has not been set."
-        	exit 1
+            echo "ERROR! The Rundeck job runtime variable \"opsman-ssh-password\" has not been set."
+            exit 1
         )
 
-        DOWNLOADS_DIR=$HOME/workspace/downloads
-        SCRIPTS_DIR=$HOME/workspace/scripts
-        CONFIG_DIR=$HOME/workspace/configs
-        BACKUP_DIR=$HOME/workspace/backups
-
-        if [ "@option.clean@" == "1" ]; then
-        	rm -fr $DOWNLOADS_DIR
-        	rm -fr $SCRIPTS_DIR
-        	rm -fr $CONFIG_DIR
-        fi
+        export DOWNLOADS_DIR=$HOME/workspace/downloads
+        export SCRIPTS_DIR=$HOME/workspace/scripts
+        export BACKUP_DIR=$HOME/workspace/backups
+        export CONFIG_DIR=$HOME/workspace/configs
 
         mkdir -p $DOWNLOADS_DIR
-        mkdir -p $CONFIG_DIR
         mkdir -p $BACKUP_DIR
 
-        export PATH=$SCRIPTS_DIR:$PATH
-
+        if [ "@option.clean@" == "1" ]; then
+            rm -fr $SCRIPTS_DIR
+            rm -fr $DOWNLOADS_DIR
+        fi
         if [[ ! -e $SCRIPTS_DIR ]]; then
 
-        	curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
-        		-o $DOWNLOADS_DIR/pcf-automation.zip
+            curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
+                -o $DOWNLOADS_DIR/pcf-automation.zip
 
-        	unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
+            unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
         fi
 
-        case $(uname) in
-        	Linux)
-        		cd $HOME/workspace/scripts/tools/linux
-        		;;
-        	Darwin)
-        		cd $HOME/workspace/scripts/tools/darwin
-        		;;
-        	*)
-        		echo "ERROR: Unable to identify OS type."
-        		exit 1
-        esac
+        export OPSMAN_HOST="@node.opsman-host@"
+        export OPSMAN_USER="@node.opsman-user@"
+        export OPSMAN_PASSWD="@option.opsman-password@"
+        export OPSMAN_SSH_USER="@node.opsman-ssh-user@"
+        export OPSMAN_SSH_PASSWORD="@option.opsman-ssh-password@"
+        export OPSMAN_KEY="@option.opsman-key@"
+        export BACKUP_AGE="@option.backup-age@"
 
-        if [ -n "@option.opsman-user@" ]; then
-        	ENCRYPTION_OPTION="--encryptionkey '@option.opsman-user@'"
-        fi
+        $SCRIPTS_DIR/run-pcf-backup.sh
 
-        tiles=(
-        	ops-manager
-        	elastic-runtime
-         	mysql-tile
-        # 	redis-tile
-        # 	rabbitmq
-        )
-
-        set +e
-
-        BACKUP_TIMESTAMP_DIR=$BACKUP_DIR/$(date +%Y%m%d%H%M%S)
-        mkdir -p $BACKUP_TIMESTAMP_DIR
-
-        export LOG_LEVEL=debug
-
-        for t in ${tiles[*]}; do
-
-        	echo -e "\n**** Backing up tile '$t' ****\n"
-
-        	echo -e "\n\n==> Backup logs for tile '$t': \n" >> $BACKUP_TIMESTAMP_DIR.log
-
-        	./cfops backup $ENCRYPTION_OPTION \
-        		--opsmanagerhost '@node.opsman-host@' \
-        		--adminuser '@node.opsman-user@' \
-        		--adminpass '@option.opsman-password@' \
-        		--opsmanageruser '@node.opsman-ssh-user@' \
-        		--opsmanagerpass '@option.opsman-ssh-password@' \
-        		--tile $t \
-        		--destination $BACKUP_TIMESTAMP_DIR 2>&1 | tee -a $BACKUP_TIMESTAMP_DIR.log
-
-        	if [[ $? -ne 0 ]]; then
-        		rm -fr $BACKUP_TIMESTAMP_DIR
-        		echo "ERROR! Backup of tile '$t' failed."
-        		exit 1
-        	fi
-        done
-
-        # Delete old backup files. By default
-        # only the most recent backup is kept
-
-        BACKUP_AGE="@option.backup-age@"
-        if [ -n "$BACKUP_AGE" ]; then
-        	BACKUP_AGE=0
-        fi
-        find $BACKUP_DIR -mtime +$BACKUP_AGE -delete
-
-        set +x
     keepgoing: false
     strategy: node-first

@@ -3,59 +3,37 @@
 #set -x
 set -e
 
-[ -z "@node.bitbucket@" ] && (
-	echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
-	exit 1
-)
-[ -z "@node.opsman-host@" ] && (
-	echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
-	exit 1
-)
-[ -z "@node.opsman-user@" ] && (
-	echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
-	exit 1
-)
-[ -z "@node.pcf-config@" ] && (
-	echo "ERROR! The Rundeck node environment variable \"pcf-config\" has not been set."
-	exit 1
-)
-[ -z "@option.opsman-password@" ] && (
-	echo "ERROR! The Ops Manager administration UI password needs to be provided."
-	exit 1
-)
+# Environment variables
+#
+# DOWNLOADS_DIR
+# SCRIPTS_DIR
+# CONFIG_DIR
+# BACKUP_DIR
+#
+# OPSMAN_HOST
+# OPSMAN_USER
+# OPSMAN_PASSWD
+# OPSMAN_KEY (optional)
+# PCF_CONFIG
+# LDAP_BIND_PASSWD (optional)
 
-DOWNLOADS_DIR=$HOME/workspace/downloads
-SCRIPTS_DIR=$HOME/workspace/scripts
-CONFIG_DIR=$HOME/workspace/configs
-BACKUP_DIR=$HOME/workspace/backups
+if [ -z "$DOWNLOADS_DIR" ] ||
+    [ -z "$SCRIPTS_DIR" ] ||
+    [ -z "$BACKUP_DIR" ] ||
+    [ -z "$CONFIG_DIR" ] ||
+    [ -z "$OPSMAN_HOST" ] ||
+    [ -z "$OPSMAN_USER" ] ||
+    [ -z "$OPSMAN_PASSWD" ] ||
+    [ -z "$PCF_CONFIG" ]; then
 
-if [ "@option.clean@" == "1" ]; then
-	rm -fr $DOWNLOADS_DIR
-	rm -fr $SCRIPTS_DIR
-	rm -fr $CONFIG_DIR
+    echo -n "The required environment variables have not been set."
+    exit 1
 fi
-
-mkdir -p $DOWNLOADS_DIR
-mkdir -p $CONFIG_DIR
-mkdir -p $BACKUP_DIR
-
-export PATH=$SCRIPTS_DIR:$PATH
-
-if [[ ! -e $SCRIPTS_DIR ]]; then
-
-	curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
-		-o $DOWNLOADS_DIR/pcf-automation.zip
-
-	unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
-fi
-
-curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/@node.pcf-config@ \
-	-o $DOWNLOADS_DIR/@node.pcf-config@.zip
 
 run_job=1
-if [[ -e $DOWNLOADS_DIR/@node.pcf-config@.zip.last ]]; then
+if [[ -e $DOWNLOADS_DIR/$PCF_CONFIG.zip.last ]]; then
 	set +e
-    diff $DOWNLOADS_DIR/@node.pcf-config@.zip $DOWNLOADS_DIR/@node.pcf-config@.zip.last
+    diff $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
     if [[ $? -ne 2 ]]; then
         run_job=0
     fi
@@ -66,27 +44,27 @@ if [[ $run_job -eq 1 ]]; then
 
     echo "Running Configuration!"
 
-	rm -fr $CONFIG_DIR/@node.pcf-config@
-	unzip -o $DOWNLOADS_DIR/@node.pcf-config@.zip -d $CONFIG_DIR/@node.pcf-config@
+	rm -fr $CONFIG_DIR/$PCF_CONFIG
+	unzip -o $DOWNLOADS_DIR/$PCF_CONFIG.zip -d $CONFIG_DIR/$PCF_CONFIG
 
-	cd $CONFIG_DIR/@node.pcf-config@
-	if [ -z "@option.opsman-key@" ]; then
+	cd $CONFIG_DIR/$PCF_CONFIG
+	if [ -z "$OPSMAN_KEY" ]; then
 
 		configure-ert -o @node.opsman-host@ \
-			-u '@node.opsman-user@' \
-			-p '@option.opsman-password@' \
-			-w '@option.ldap-bind-password@'
+			-u '$OPSMAN_USER' \
+			-p '$OPSMAN_PASSWD' \
+			-w '$LDAP_BIND_PASSWD'
 	else
 		configure-ert -o @node.opsman-host@ \
-			-u '@node.opsman-user@' \
-			-p '@option.opsman-password@' \
-			-w '@option.ldap-bind-password@' \
-			-k '@option.opsman-key@'
+			-u '$OPSMAN_USER' \
+			-p '$OPSMAN_PASSWD' \
+			-w '$LDAP_BIND_PASSWD' \
+			-k '$OPSMAN_KEY'
 	fi
 
-    mv $DOWNLOADS_DIR/@node.pcf-config@.zip $DOWNLOADS_DIR/@node.pcf-config@.zip.last
+    mv $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
 else
-    rm $DOWNLOADS_DIR/@node.pcf-config@.zip
+    rm $DOWNLOADS_DIR/$PCF_CONFIG.zip
 fi
 
 set +e

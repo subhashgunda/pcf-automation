@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #set -x
-set -e
 
 # Environment variables
 #
@@ -15,7 +14,21 @@ set -e
 # OPSMAN_PASSWD
 # OPSMAN_SSH_USER
 # OPSMAN_SSH_PASSWORD
-# BACKUP_AGE
+# OPSMAN_KEY (optional)
+# BACKUP_AGE (optional)
+
+if [ -z "$DOWNLOADS_DIR" ] ||
+    [ -z "$SCRIPTS_DIR" ] ||
+    [ -z "$BACKUP_DIR" ] ||
+    [ -z "$CONFIG_DIR" ] ||
+    [ -z "$OPSMAN_HOST" ] ||
+    [ -z "$OPSMAN_USER" ] ||
+    [ -z "$OPSMAN_SSH_USER" ] ||
+    [ -z "$OPSMAN_SSH_PASSWORD" ]; then
+
+    echo -n "The required environment variables have not been set."
+    exit 1
+fi
 
 case $(uname) in
     Linux)
@@ -40,8 +53,6 @@ tiles=(
 # 	redis-tile
 # 	rabbitmq
 )
-
-set +e
 
 BACKUP_TIMESTAMP_DIR=$BACKUP_DIR/$(date +%Y%m%d%H%M%S)
 mkdir -p $BACKUP_TIMESTAMP_DIR
