@@ -68,13 +68,15 @@
         export BACKUP_DIR=$HOME/workspace/backups
         export CONFIG_DIR=$HOME/workspace/configs
 
+        if [ "@option.clean@" == "1" ]; then
+            rm -fr $DOWNLOADS_DIR
+            rm -fr $SCRIPTS_DIR
+            rm -fr $CONFIG_DIR
+        fi
         mkdir -p $DOWNLOADS_DIR
         mkdir -p $BACKUP_DIR
+        mkdir -p $CONFIG_DIR
 
-        if [ "@option.clean@" == "1" ]; then
-            rm -fr $SCRIPTS_DIR
-            rm -fr $DOWNLOADS_DIR
-        fi
         if [[ ! -e $SCRIPTS_DIR ]]; then
 
             curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
