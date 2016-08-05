@@ -50,12 +50,12 @@ if [[ $run_job -eq 1 ]]; then
 	cd $CONFIG_DIR/$PCF_CONFIG
 	if [ -z "$OPSMAN_KEY" ]; then
 
-		configure-ert -o @node.opsman-host@ \
+		configure-ert -o $OPSMAN_HOST \
 			-u '$OPSMAN_USER' \
 			-p '$OPSMAN_PASSWD' \
 			-w '$LDAP_BIND_PASSWD'
 	else
-		configure-ert -o @node.opsman-host@ \
+		configure-ert -o $OPSMAN_HOST \
 			-u '$OPSMAN_USER' \
 			-p '$OPSMAN_PASSWD' \
 			-w '$LDAP_BIND_PASSWD' \
