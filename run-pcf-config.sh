@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 set -e
 
 # Environment variables
@@ -68,4 +68,4 @@ else
 fi
 
 set +e
-set +x
+#set +x

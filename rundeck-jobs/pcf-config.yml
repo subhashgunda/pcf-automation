@@ -84,7 +84,7 @@
         export OPSMAN_HOST="@node.opsman-host@"
         export OPSMAN_USER="@node.opsman-user@"
         export OPSMAN_PASSWD="@option.opsman-password@"
-        export OPSMAN_KEY="option.opsman-key@"
+        export OPSMAN_KEY="@option.opsman-key@"
         export PCF_CONFIG="@node.pcf-config@"
         export LDAP_BIND_PASSWD="@option.ldap-bind-password@"
 
