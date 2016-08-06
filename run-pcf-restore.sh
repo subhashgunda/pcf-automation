@@ -19,6 +19,7 @@
 
 if [ -z "$DOWNLOADS_DIR" ] ||
     [ -z "$SCRIPTS_DIR" ] ||
+    [ -z "$BACKUP_DIR" ] ||
     [ -z "$CONFIG_DIR" ] ||
     [ -z "$OPSMAN_HOST" ] ||
     [ -z "$OPSMAN_USER" ] ||
@@ -26,16 +27,16 @@ if [ -z "$DOWNLOADS_DIR" ] ||
     [ -z "$OPSMAN_SSH_PASSWORD" ] ||
     [ -z "$TIMESTAMP" ]; then
 
-    echo -n "The required environment variables have not been set."
+    echo "The required environment variables have not been set."
     exit 1
 fi
 
 case $(uname) in
     Linux)
-        cd $HOME/workspace/scripts/tools/linux
+        cd $SCRIPTS_DIR/tools/linux
         ;;
     Darwin)
-        cd $HOME/workspace/scripts/tools/darwin
+        cd $SCRIPTS_DIR/tools/darwin
         ;;
     *)
         echo "ERROR: Unable to identify OS type."

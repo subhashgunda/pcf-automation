@@ -1,0 +1,102 @@
+- description: PCF Backup
+  executionEnabled: true
+  loglevel: INFO
+  name: pcf-backup-dev
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      threadcount: 1
+    filter: 'tags: pcf-dev'
+  nodesSelectedByDefault: true
+  options:
+  - description: The timestamped folder name containing the backup to be restored.
+    name: timestamp
+  - description: Set this value to '1' to update the scripts from source control.
+    name: clean
+  - description: Ops Manager encryption key required if the Web GUI was restarted or VM was rebooted for initializing the authentication system.
+    name: opsman-key
+    secure: true
+    valueExposed: true
+  - description: The Ops Manager Web UI administrator password.
+    name: opsman-password
+    secure: true
+    valueExposed: true
+  - description: The user password to ssh into Ops Manager VM.
+    name: opsman-ssh-password
+    secure: true
+    valueExposed: true
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |
+        #!/bin/bash
+
+        #
+        # Rundeck variables
+        #
+
+        [ -z "@node.bitbucket@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+            exit 1
+        )
+        [ -z "@node.opsman-host@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
+            exit 1
+        )
+        [ -z "@node.opsman-user@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
+            exit 1
+        )
+        [ -z "@option.opsman-password@" ] && (
+            echo "ERROR! The Rundeck job runtime variable \"opsman-password\" has not been set."
+            exit 1
+        )
+        [ -z "@node.opsman-ssh-user@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"opsman-ssh-user\" has not been set."
+            exit 1
+        )
+        [ -z "@option.opsman-ssh-password@" ] && (
+            echo "ERROR! The Rundeck job runtime variable \"opsman-ssh-password\" has not been set."
+            exit 1
+        )
+        [ -z "@option.timestamp@" ] && (
+            echo "ERROR! The Rundeck job runtime variable \"timestamp\" has not been set."
+            exit 1
+        )
+
+        export DOWNLOADS_DIR=$HOME/workspace/downloads
+        export SCRIPTS_DIR=$HOME/workspace/scripts
+        export BACKUP_DIR=$HOME/workspace/backups
+        export CONFIG_DIR=$HOME/workspace/configs
+
+        if [ "@option.clean@" == "1" ]; then
+            rm -fr $DOWNLOADS_DIR
+            rm -fr $SCRIPTS_DIR
+            rm -fr $CONFIG_DIR
+        fi
+        mkdir -p $DOWNLOADS_DIR
+        mkdir -p $BACKUP_DIR
+        mkdir -p $CONFIG_DIR
+
+        if [[ ! -e $SCRIPTS_DIR ]]; then
+
+            curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
+                -o $DOWNLOADS_DIR/pcf-automation.zip
+
+            unzip -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
+        fi
+
+        export OPSMAN_HOST="@node.opsman-host@"
+        export OPSMAN_USER="@node.opsman-user@"
+        export OPSMAN_PASSWD="@option.opsman-password@"
+        export OPSMAN_SSH_USER="@node.opsman-ssh-user@"
+        export OPSMAN_SSH_PASSWORD="@option.opsman-ssh-password@"
+        export OPSMAN_KEY="@option.opsman-key@"
+        export TIMESTAMP="@option.timestamp@"
+
+        $SCRIPTS_DIR/run-pcf-restore.sh
+
+    keepgoing: false
+    strategy: node-first
