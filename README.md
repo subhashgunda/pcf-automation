@@ -54,41 +54,41 @@ Due to a bug in the ```cfops``` utility, which is used to restore the various pa
 
 > The following steps have been verified with Pivotal Cloud Foundry OpsManager 1.7.x and may need to change with subsequent major releases.
 
-1) Deploy OpsManager OVA using the same network settings as before.
+1. Deploy OpsManager OVA using the same network settings as before.
 
-2) Setup Rundeck SSH keys on deployed OpsManager VM and configure node in Rundeck.
+2. Setup Rundeck SSH keys on deployed OpsManager VM and configure node in Rundeck.
 
-3) Copy the backup to be restored to ```$HOME/workspace/backups```, or if backups were written to shared storage mount it to the OpsManager VM.
+3. Copy the backup to be restored to ```$HOME/workspace/backups```, or if backups were written to shared storage mount it to the OpsManager VM.
 
-4) Import ```$HOME/workspace/backups/$TIMESTAMP/opsmanager/installation.zip``` from the command line as follows.
+4. Import ```$HOME/workspace/backups/$TIMESTAMP/opsmanager/installation.zip``` from the command line as follows.
 
-```
-curl -v -k https://$OPSMAN_HOST/api/v0/installation_asset_collection -X POST -F 'installation[file]=@/home/ubuntu/workspace/backups/$TIMESTAMP/opsmanager/installation.zip' -F 'passphrase=$OPSMAN_KEY'
-```
+    ```
+    curl -v -k https://$OPSMAN_HOST/api/v0/installation_asset_collection -X POST -F 'installation[file]=@/home/ubuntu/workspace/backups/$TIMESTAMP/opsmanager/installation.zip' -F 'passphrase=$OPSMAN_KEY'
+    ```
 
-or import it via the OpsManager Web UI. Make sure you use the same passphrase that was used for the backed up deployment.
+    or import it via the OpsManager Web UI. Make sure you use the same passphrase that was used for the backed up deployment.
 
-5) Delete the /var/tempest/workspaces/default/deployments/bosh-state.json file on the OpsManager VM. 
+5. Delete the /var/tempest/workspaces/default/deployments/bosh-state.json file on the OpsManager VM. 
     
 > This will force the Bosh director to be redeployed when you hit "Apply Changes" to rebuild the PCF environment.
 
-3) Sign in to the OpsManager Web UI using same admin user and password as backed up environment. 
+6. Sign in to the OpsManager Web UI using same admin user and password as backed up environment. 
 
-4. You will observe that some tiles are orange. To fix this simply re-import the stemcells of the tiles that are orange.
+7. You will observe that some tiles are orange. To fix this simply re-import the stemcells of the tiles that are orange.
     
 > It seems like the import process does not import the stemcell references correctly. 
 
-7) In the JMX Bridge tile navigate to the resources configuration and scale the "OpenTSDB Firehose Nozzle" to 0 instances. 
+8. In the JMX Bridge tile navigate to the resources configuration and scale the "OpenTSDB Firehose Nozzle" to 0 instances. 
     
 > This component fails the installation as Ops Manager insists on applying changes to this tile before the ER tile.
 
-9) Click "Apply Changes" to deploy the changes made via Ops Manager UI.
+9. Click "Apply Changes" to deploy the changes made via Ops Manager UI.
 
-10) Run the restore rundeck job on the restored OpsManager node providing the TIMESTAMP of the backup to restore.
+10. Run the restore rundeck job on the restored OpsManager node providing the TIMESTAMP of the backup to restore.
 
 > This should restore you CloudFoundry configuration as well as deployed applications and services.
 
-11) Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
+11. Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
 
 ## Upgrading PCF Ops Manager
 
