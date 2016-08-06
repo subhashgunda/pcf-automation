@@ -90,6 +90,10 @@ or import it via the OpsManager Web UI. Make sure you use the same passphrase th
 
 11) Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
 
+## Upgrading PCF Ops Manager
+
+The detail instructions to upgrade PCF OpsManager can be found [here](http://docs.pivotal.io/pivotalcf/1-7/customizing/upgrading-pcf.html#choose-az).
+
 ## Configuration
 
 This ```configure-ert``` script is used to automate the configuration of organizations and spaces within the Elastic Runtime or CloudFoundry deployment. It's goal is to treat all aspects of the CloudFoundry tenant configuration as code. The ```example-config``` folder within this repository contains a sample configuration. The script should be run from within a source repository that contains such a configuration.
@@ -249,4 +253,3 @@ Arguments:
 $ configure-ert --opsman-host OPS_MANAGER_HOST --opsman-user OPS_MANAGER_USER --opsman-passwd OPS_MANAGER_USER
 ```
 
-## Performing an Upgrade
