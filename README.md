@@ -258,7 +258,7 @@ $ configure-ert --opsman-host OPS_MANAGER_HOST --opsman-user OPS_MANAGER_USER --
 To test if a particular user is available in the LDAP search group to source users from. The 'ldapsearch' utility must be installed in the machine the query is run from. A binary for you is available in the ```workspace/scripts/tools``` folder.
 
 ```
-USER_MAIL=<users email>
+USER_MAIL=<user's email>
 LDAP_SEARCH_QUERY="(&(objectClass=user)(memberOf=cn=SG-WW-R3PI-PCF,ou=WW,ou=Security Groups,ou=x_NewStructure,dc=int,dc=audatex,dc=com)(mail=$USER_MAIL))"
 
 BIND_USER=sa-chzu-bosh@audatex.com
