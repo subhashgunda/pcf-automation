@@ -26,7 +26,7 @@ if [ -z "$DOWNLOADS_DIR" ] ||
     [ -z "$OPSMAN_PASSWD" ] ||
     [ -z "$PCF_CONFIG" ]; then
 
-    echo -n "The required environment variables have not been set."
+    echo "The required environment variables have not been set."
     exit 1
 fi
 

@@ -82,7 +82,7 @@
             curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
                 -o $DOWNLOADS_DIR/pcf-automation.zip
 
-            unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
+            unzip -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
         fi
 
         export OPSMAN_HOST="@node.opsman-host@"
