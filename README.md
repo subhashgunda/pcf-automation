@@ -92,7 +92,7 @@ or import it via the OpsManager Web UI. Make sure you use the same passphrase th
 
 ## Upgrading PCF Ops Manager
 
-The detail instructions to upgrade PCF OpsManager can be found [here](http://docs.pivotal.io/pivotalcf/1-7/customizing/upgrading-pcf.html#choose-az).
+The instructions to upgrade PCF OpsManager can be found [here](http://docs.pivotal.io/pivotalcf/1-7/customizing/upgrading-pcf.html#choose-az). You can follow steps 1-4 given above to deploy the new OpsManager OVA and set it up for automation after shutting down the old OpsManager VM. Since you are only upgrading the OpsManager, Bosh and its deployments will be untouched. You may still have to upload missing stemcells and apply changes to synchronize the OpsManager state with that of Bosh, but this should not have any impact on the existing Bosh deployments.
 
 ## Configuration
 
