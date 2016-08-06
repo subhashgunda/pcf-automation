@@ -253,3 +253,15 @@ Arguments:
 $ configure-ert --opsman-host OPS_MANAGER_HOST --opsman-user OPS_MANAGER_USER --opsman-passwd OPS_MANAGER_USER
 ```
 
+## Testing if a user has been added to the LDAP search group
+
+To test if a particular user is available in the LDAP search group to source users from. The 'ldapsearch' utility must be installed in the machine the query is run from. A binary for you is available in the ```workspace/scripts/tools``` folder.
+
+```
+USER_MAIL=<users email>
+LDAP_SEARCH_QUERY="(&(objectClass=user)(memberOf=cn=SG-WW-R3PI-PCF,ou=WW,ou=Security Groups,ou=x_NewStructure,dc=int,dc=audatex,dc=com)(mail=$USER_MAIL))"
+
+BIND_USER=sa-chzu-bosh@audatex.com
+BIND_PASSWD=*****
+ldapsearch -H ldap://srv-chzu-itdc01.int.audatex.com:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=audatex,dc=com' "$LDAP_SEARCH_QUERY"
+```
