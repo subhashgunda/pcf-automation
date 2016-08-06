@@ -18,33 +18,33 @@ The ```rundeck-jobs``` folder contain rundeck job specifications that are meant 
 
 To setup rundeck you will need to configure your Pivotal OpsManager VM as a node. If necessary setup an ssh-key to enable Rundeck to ssh into the node without a password challenge. Configure the node to have the following node variables.
 
-* download-url - url where the automation script archive can be downloaded from
-* opsman-host - the host name (or IP) of the OpsManager VM. This needs to be the name/IP used when OpsManager's UAA was initially setup.
-* opsman-user - the OpsManager's admin user
-* opsman-ssh-user - the SSH user used to login to the OpsManager VM
-* pcf-config - the name of the configuration archive that contains the configuration for the ERT deployed by the OpsManager.
+* *download-url* - url where the automation script archive can be downloaded from
+* *opsman-host* - the host name (or IP) of the OpsManager VM. This needs to be the name/IP used when OpsManager's UAA was initially setup.
+* *opsman-user* - the OpsManager's admin user
+* *opsman-ssh-user* - the SSH user used to login to the OpsManager VM
+* *pcf-config* - the name of the configuration archive that contains the configuration for the ERT deployed by the OpsManager.
 
 Each of the Rundeck jobs also has job specific option variables that need to be set before running the job.
 
 * input variables for *pcf-config.yml*
-    - option.clean - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
-    - option.opsman-password - the OpsManager admin user's password
-    - option.opsman-key - the encryption key required to unlock OpsManager after reboot
-    - option.ldap-bind-password - the LDAP password if users are sourced from an LDAP backend
+    - *option.clean* - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
+    - *option.opsman-password* - the OpsManager admin user's password
+    - *option.opsman-key* - the encryption key required to unlock OpsManager after reboot
+    - *option.ldap-bind-password* - the LDAP password if users are sourced from an LDAP backend
 
 * input variables for *pcf-backup.yml*
-    - option.clean - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
-    - option.opsman-password - the OpsManager admin user's password
-    - option.opsman-ssh-password - the OpsManager SSH user's password.
-    - option.opsman-key - the encryption key required to unlock OpsManager after reboot
-    - option.backup-age - the maximum age in days of a backup. Older backups will be deleted.
+    - *option.clean* - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
+    - *option.opsman-password* - the OpsManager admin user's password
+    - *option.opsman-ssh-password* - the OpsManager SSH user's password.
+    - *option.opsman-key* - the encryption key required to unlock OpsManager after reboot
+    - *option.backup-age* - the maximum age in days of a backup. Older backups will be deleted.
 
 * input variables for *pcf-restore.yml*
-    - option.clean - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
-    - option.opsman-password - the OpsManager admin user's password
-    - option.opsman-ssh-password - the OpsManager SSH user's password.
-    - option.opsman-key - the encryption key required to unlock OpsManager after reboot
-    - option.timestamp - the timestamped folder name to be restored. This needs to be copied to the OpsManager VM's ```$HOME/workspace/backups``` folder before the job is run.
+    - *option.clean* - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
+    - *option.opsman-password* - the OpsManager admin user's password
+    - *option.opsman-ssh-password* - the OpsManager SSH user's password.
+    - *option.opsman-key* - the encryption key required to unlock OpsManager after reboot
+    - *option.timestamp* - the timestamped folder name to be restored. This needs to be copied to the OpsManager VM's ```$HOME/workspace/backups``` folder before the job is run.
 
 Each Rundeck job executes a corresponding runner ```run-*``` shell script, which can be found in the root folder of this repository. These scripts can be run on demand provided the script environment variables have been set. You can inspect the script to determine the required environment variables.
 
