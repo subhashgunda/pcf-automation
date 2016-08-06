@@ -50,7 +50,7 @@ Each Rundeck job executes a corresponding runner ```run-*``` shell script, which
 
 ## Restoring a Deployment
 
-Due to a bug in the ```cfops``` utility used to restore various parts of the PCF deployment, the OpsManager VM needs to be restored manually before running the Rundeck restore job. Before the PCF deployment can be restored the vSphere (IaaS) environment needs to be restored to the same configuration PCF was originally deployed to. Once vSphere has been restored, follow the steps below to restore PCF.
+Due to a bug in the ```cfops``` utility, which is used to restore the various parts of the PCF deployment, the OpsManager VM needs to be restored manually before running the Rundeck restore job. First the vSphere (IaaS) environment needs to be restored to the same configuration PCF was originally deployed to before it can be restored. Once vSphere has been restored, follow the steps below to restore PCF.
 
 > The following steps have been verified with Pivotal Cloud Foundry OpsManager 1.7.x and may need to change with subsequent major releases.
 
