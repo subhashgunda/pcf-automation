@@ -69,24 +69,24 @@ curl -v -k https://$OPSMAN_HOST/api/v0/installation_asset_collection -X POST -F 
 or import it via the OpsManager Web UI. Make sure you use the same passphrase that was used for the backed up deployment.
 
 5) Delete the /var/tempest/workspaces/default/deployments/bosh-state.json file on the OpsManager VM. 
-
-    > This will force the Bosh director to be redeployed when you hit "Apply Changes" to rebuild the PCF environment.
+    
+> This will force the Bosh director to be redeployed when you hit "Apply Changes" to rebuild the PCF environment.
 
 3) Sign in to the OpsManager Web UI using same admin user and password as backed up environment. 
 
 4. You will observe that some tiles are orange. To fix this simply re-import the stemcells of the tiles that are orange.
-
-    > It seems like the import process does not import the stemcell references correctly. 
+    
+> It seems like the import process does not import the stemcell references correctly. 
 
 7) In the JMX Bridge tile navigate to the resources configuration and scale the "OpenTSDB Firehose Nozzle" to 0 instances. 
     
-    > This component fails the installation as Ops Manager insists on applying changes to this tile before the ER tile.
+> This component fails the installation as Ops Manager insists on applying changes to this tile before the ER tile.
 
 9) Click "Apply Changes" to deploy the changes made via Ops Manager UI.
 
 10) Run the restore rundeck job on the restored OpsManager node providing the TIMESTAMP of the backup to restore.
 
-    > This should restore you CloudFoundry configuration as well as deployed applications and services.
+> This should restore you CloudFoundry configuration as well as deployed applications and services.
 
 11) Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
 
