@@ -261,8 +261,11 @@ end
 # Login to OpsManager
 #
 
+puts "#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation"
+
 check_error( %x(#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation),
 	'Unable to target Ops Manager\'s UAA' )
+exit 1
 
 if !opsman_key.nil?
 
