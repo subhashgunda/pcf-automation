@@ -755,7 +755,6 @@ if !@ldap_url.nil?
 	ldap_users.each do |user|
 
 		user_search_query = eval("\"" + @ldap_config['user-search-query'] + "\"")
-		puts "#{user_search_query}"
 
 		dn = %x(#{@ldapsearch_cli} -H #{@ldap_url} \
 			-D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
