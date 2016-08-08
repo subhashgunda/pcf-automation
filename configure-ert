@@ -261,8 +261,6 @@ end
 # Login to OpsManager
 #
 
-puts "#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation"
-
 check_error( %x(#{@uaac} target https://#{opsman_host}/uaa --skip-ssl-validation),
 	'Unable to target Ops Manager\'s UAA' )
 
@@ -294,16 +292,12 @@ if !opsman_key.nil?
 	end
 else
 	puts "Logging into PCF Ops Manager."
-    puts "%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'"
-    
-    check_error(%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'),
+	check_error(%x(#{@uaac} token owner get opsman #{opsman_user} -s '' -p '#{opsman_passwd}'),
 		'Unable to get uaac token from Ops Manager UAA.')
 end
 
 access_token = check_error(%x(#{@uaac} context | awk '/access_token:/{ print $2 }'),
 	'Unable to get uaac access token value from context.')
-
-exit 0
 
 #
 # Retrieve Bosh and Elastic Runtime credentials

@@ -51,15 +51,15 @@ if [[ $run_job -eq 1 ]]; then
 	if [ -z "$OPSMAN_KEY" ]; then
 
 		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
-			-u '$OPSMAN_USER' \
-			-p '$OPSMAN_PASSWD' \
-			-w '$LDAP_BIND_PASSWD'
+			-u "$OPSMAN_USER" \
+			-p "$OPSMAN_PASSWD" \
+			-w "$LDAP_BIND_PASSWD"
 	else
 		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
-			-u '$OPSMAN_USER' \
-			-p '$OPSMAN_PASSWD' \
-			-w '$LDAP_BIND_PASSWD' \
-			-k '$OPSMAN_KEY'
+			-u "$OPSMAN_USER" \
+			-p "$OPSMAN_PASSWD" \
+			-w "$LDAP_BIND_PASSWD" \
+			-k "$OPSMAN_KEY"
 	fi
 
     mv $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
