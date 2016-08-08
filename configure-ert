@@ -152,8 +152,8 @@ def add_user(user)
 			"LDAP query for user '#{user}' failed." )
 
 		if user_data['externalId'].empty?
-			puts "Unable to find LDAP user with mail attributed '#{user}'."
-			exit 1
+			puts "Unable to find LDAP user with mail attributed '#{user}'. This user will be skipped."
+			return false
 		end
 
 		user_detail = JSON.parse(check_error(%x(#{@uaac} curl -H 'Content-Type: application/json' -k /Users -X POST -d '#{user_data.to_json}'),
@@ -166,7 +166,7 @@ def add_user(user)
 			'Unable to create user to #{user}.' )
 	end
 
-	# Create an org for the user with a sandbox space
+	return true
 end
 
 def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
@@ -177,11 +177,11 @@ def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
 	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
-		if !existing_list.include?(u)
-			add_user(u) if !user_exists?(u)
-			puts "Setting #{role} role for user #{u} in org '#{org}'."
-			check_error(%x(#{@cf_cli} set-org-role #{u} '#{org}' #{role}),
-				"Unable to set org role.")
+		if !existing_list.include?(u) &&
+            (user_exists?(u) || add_user(u))
+            puts "Setting #{role} role for user #{u} in org '#{org}'."
+            check_error(%x(#{@cf_cli} set-org-role #{u} '#{org}' #{role}),
+                "Unable to set org role.")
 		end
 		existing_list.delete_if { |n| n==u }
 	}
@@ -200,11 +200,11 @@ def set_space_role(user_list, existing_list, org, space, role, delete_missing_en
 	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
-		if !existing_list.include?(u)
-			add_user(u) if !user_exists?(u)
-			puts "Setting #{role} role for user #{u} in org '#{org}' and space '#{space}'."
-			check_error(%x(#{@cf_cli} set-space-role #{u} '#{org}' '#{space}' #{role}),
-				"Unable to set space role.")
+		if !existing_list.include?(u) &&
+            (user_exists?(u) || add_user(u))
+            puts "Setting #{role} role for user #{u} in org '#{org}' and space '#{space}'."
+            check_error(%x(#{@cf_cli} set-space-role #{u} '#{org}' '#{space}' #{role}),
+                "Unable to set space role.")
 		end
 		existing_list.delete_if { |n| n==u }
 	}
