@@ -1,26 +1,32 @@
 ---
-name: automation-test
+name: acme-org-1
+delete-missing-entities: true
 quota: 'runaway'
 domains: [ 'staging-auto-demo.acme.com', 'production-auto-demo.acme.com' ]
 org-managers: [ 'dev-manager@acme.com' ]
 org-auditors: [ 'app-auditor@acme.com' ]
+
 spaces:
-- name: Sandbox
+
+- name: sandbox
   quota: 'development'
   security-groups: [ 'pcf_network' ]
   space-managers: [ 'team-lead@acme.com' ]
   space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com', 'intern-dev1@acme.com' ]
   space-auditors:  [ 'app-auditor@acme.com' ]
-- name: Development
+  
+- name: development
   quota: 'development'
   space-managers: [ 'team-lead@acme.com' ]
   space-developers: [ 'team-lead@acme.com', 'dev1@acme.com', 'dev2@acme.com' ]
   space-auditors:  [ 'app-auditor@acme.com' ]
-- name: Staging
+  
+- name: staging
   security-groups: [ 'mysql','rabbitmq' ]
   space-managers: [ 'prod-support@acme.com' ]
   space-auditors:  [ 'app-auditor@acme.com' ]
-- name: Production
+  
+- name: production
   security-groups: [ 'mysql','rabbitmq' ]
   space-managers: [ 'prod-support@acme.com' ]
   space-auditors:  [ 'app-auditor@acme.com' ]

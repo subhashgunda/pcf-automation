@@ -1,0 +1,28 @@
+---
+organizations:
+
+- name: acme-org-2
+  org-managers: [ 'dev-manager@acme.com' ]
+  org-auditors: [ 'app-auditor@acme.com', 'team-lead@acme.com', 'dev3@acme.com' ]
+  spaces:
+  - name: sandbox
+    space-managers: [ 'dev1@acme.com' ]
+    space-developers: [ 'dev1@acme.com', 'dev2@acme.com' ]
+    space-auditors:  [ 'app-auditor@acme.com' ]
+  - name: development
+    space-managers: [ 'dev1@acme.com' ]
+    space-developers: [ 'dev1@acme.com', 'dev2@acme.com' ]
+    space-auditors:  [ 'app-auditor@acme.com' ]
+
+- name: acme-org-3
+  org-managers: [ 'dev-manager@acme.com' ]
+  org-auditors: [ 'app-auditor@acme.com', 'team-lead@acme.com', 'dev1@acme.com' ]
+  spaces:
+  - name: sandbox
+    space-managers: [ 'dev2@acme.com' ]
+    space-developers: [ 'dev2@acme.com', 'dev3@acme.com' ]
+    space-auditors:  [ 'app-auditor@acme.com' ]
+  - name: development
+    space-managers: [ 'dev2@acme.com' ]
+    space-developers: [ 'dev2@acme.com', 'dev3@acme.com' ]
+    space-auditors:  [ 'app-auditor@acme.com' ]
