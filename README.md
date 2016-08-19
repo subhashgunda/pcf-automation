@@ -259,9 +259,11 @@ To test if a particular user is available in the LDAP search group to source use
 
 ```
 USER_MAIL=<user's email>
-LDAP_SEARCH_QUERY="(&(objectClass=user)(memberOf=cn=SG-WW-R3PI-PCF,ou=WW,ou=Security Groups,ou=x_NewStructure,dc=int,dc=audatex,dc=com)(mail=$USER_MAIL))"
+LDAP_SEARCH_QUERY="(&(objectClass=user)(memberOf=cn=WW-PCF,ou=WW,ou=Security Groups,ou=x_NewStructure,dc=int,dc=acme,dc=com)(mail=$USER_MAIL))"
 
-BIND_USER=sa-chzu-bosh@audatex.com
+LDAP_HOST=<ldap hostname>
+BIND_USER=<ldap user>
 BIND_PASSWD=*****
-ldapsearch -H ldap://srv-chzu-itdc01.int.audatex.com:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=audatex,dc=com' "$LDAP_SEARCH_QUERY"
+ldapsearch -H $BIND_USER:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=audatex,dc=com' "$LDAP_SEARCH_QUERY"
 ```
+
