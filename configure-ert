@@ -174,8 +174,6 @@ def set_org_role(user_list, existing_list, org, role, delete_missing_entities)
 	user_list = user_list.map(&:downcase)
 	existing_list = existing_list.map(&:downcase)
 
-	delete_missing_entities = delete_missing_entities || @delete_missing_entities
-
 	user_list.each { |u|
 		if !existing_list.include?(u) &&
             (user_exists?(u) || add_user(u))
@@ -196,8 +194,6 @@ def set_space_role(user_list, existing_list, org, space, role, delete_missing_en
 
 	user_list = user_list.map(&:downcase)
 	existing_list = existing_list.map(&:downcase)
-
-	delete_missing_entities = delete_missing_entities || @delete_missing_entities
 
 	user_list.each { |u|
 		if !existing_list.include?(u) &&
@@ -356,7 +352,8 @@ check_error(
 	%x(#{@uaac} target --skip-ssl-validation https://uaa.#{cf_system_domain} ),
 	"Unable to set the CloudFoundry UAA target" )
 check_error(
-	%x(#{@uaac} token client get #{cf_uaa_admin_client_credentials['identity']} \-s #{cf_uaa_admin_client_credentials['password']}),
+	%x(#{@uaac} token client get #{cf_uaa_admin_client_credentials['identity']} \
+    -s #{cf_uaa_admin_client_credentials['password']}),
 	'Unable login to the CloudController UAA.' )
 
 #
@@ -523,7 +520,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 	orgs.each do |org_details|
 
 		org_name = org_details['name']
-		org_delete_missing_entities = org_details['delete-missing-entities'] || @delete_missing_entities
+		org_delete_missing_entities = org_details['delete-missing-entities'] || false
 
 		puts "Configuring organization '#{org_name}'."
 
