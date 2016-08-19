@@ -165,7 +165,9 @@ ldap:
     user_search_base: ...
 ```
 
-The organization yml file could have one of the following structures.
+The organization yml file could have one of the following structures. Configuration of an organization can be modified manually and the source config will not be enforced unless the ```delete_missing_entities``` flag is set to true at the organization level.
+
+> It should be noted that if an org or space is renamed manually it will be considered out of sync and could potentially be deleted. In such a case the org may be deleted if the ```delete_missing_entities```is set to true in the ```config.yml``` file and the same will happen to the space if this flag is set to true at the organization level. This means all renaming of organizations and spaces *must* be done within the source configuration.
 
 1. Single Organization
 
