@@ -264,6 +264,6 @@ LDAP_SEARCH_QUERY="(&(objectClass=user)(memberOf=cn=WW-PCF,ou=WW,ou=Security Gro
 LDAP_HOST=<ldap hostname>
 BIND_USER=<ldap user>
 BIND_PASSWD=*****
-ldapsearch -H $BIND_USER:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=audatex,dc=com' "$LDAP_SEARCH_QUERY"
+ldapsearch -H $BIND_USER:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=acme,dc=com' "$LDAP_SEARCH_QUERY"
 ```
 
