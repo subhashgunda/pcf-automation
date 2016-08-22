@@ -16,9 +16,13 @@ The ```rundeck-jobs``` folder contain rundeck job specifications that are meant 
                                   If possible set this up as a remote NFS mount.
 ```
 
-To setup rundeck you will need to configure your Pivotal OpsManager VM as a node. If necessary setup an ssh-key to enable Rundeck to ssh into the node without a password challenge. Configure the node to have the following node variables.
+To setup rundeck you will need to configure your Pivotal OpsManager VM as a node. If necessary setup an ssh-key to enable Rundeck to ssh into the node without a password challenge. You will also need to generate a ssh key, which OpsManager can use to clone the automation and configuration git repositories. Run the following command in OpsManager and add the contents of the generated public key to the git repositories. Alternatively you can reuse an already generated ssh key whose public key has been added to the git repositories.
 
-* *download-url* - url where the automation script archive can be downloaded from
+```echo "" | ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q```
+
+Configure the node to have the following node variables.
+
+* *git-url* - url where the automation script archive can be downloaded from
 * *opsman-host* - the host name (or IP) of the OpsManager VM. This needs to be the name/IP used when OpsManager's UAA was initially setup.
 * *opsman-user* - the OpsManager's admin user
 * *opsman-ssh-user* - the SSH user used to login to the OpsManager VM

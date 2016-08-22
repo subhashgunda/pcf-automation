@@ -716,7 +716,7 @@ cf_org_list.each{ |n|
 #
 
 cf_security_group_list.each{ |n|
-	puts "Deleting security group '#{n}."
+	puts "Deleting security group '#{n}'."
 	check_error(%x(#{@cf_cli} delete-security-group -f #{n}),
 		"Unable to delete security group #{n}.")
 } if @delete_missing_entities
