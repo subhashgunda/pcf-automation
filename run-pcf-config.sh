@@ -71,7 +71,9 @@ if [[ $run_job -eq 1 ]]; then
             $test_run
 	fi
 
-    mv $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
+    if [[ "$TEST_RUN" == "0" ]]; then
+        mv $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
+    fi
 else
     rm $DOWNLOADS_DIR/$PCF_CONFIG.zip
 fi
