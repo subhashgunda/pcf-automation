@@ -12,6 +12,7 @@
   options:
   - description: Set this value to '1' to update the scripts from source control.
     name: clean
+    value: '0'
     values:
     - '0'
     - '1'
