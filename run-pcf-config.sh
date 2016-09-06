@@ -57,13 +57,13 @@ if [[ $run_job -eq 1 ]]; then
 	cd $CONFIG_DIR/$PCF_CONFIG
 	if [ -z "$OPSMAN_KEY" ]; then
 
-		echo $SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
+		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
 			-w "$LDAP_BIND_PASSWD" \
             $test_run
 	else
-		echo $SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
+		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
 			-w "$LDAP_BIND_PASSWD" \
