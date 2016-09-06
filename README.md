@@ -32,6 +32,7 @@ Each of the Rundeck jobs also has job specific option variables that need to be 
 
 * input variables for *pcf-config.yml*
     - *option.clean* - if set to "1" then the scripts and config workspace folders will be deleted and refreshed
+    - *test-run* - If '1' then the commands to be run will be echoed but not executed.
     - *option.opsman-password* - the OpsManager admin user's password
     - *option.opsman-key* - the encryption key required to unlock OpsManager after reboot
     - *option.ldap-bind-password* - the LDAP password if users are sourced from an LDAP backend
@@ -171,7 +172,7 @@ ldap:
 
 The organization yml file could have one of the following structures. Configuration of an organization can be modified manually and the source config will not be enforced unless the ```delete_missing_entities``` flag is set to true at the organization level.
 
-> It should be noted that if an org or space is renamed manually it will be considered out of sync and could potentially be deleted. In such a case the org may be deleted if the ```delete_missing_entities```is set to true in the ```config.yml``` file and the same will happen to the space if this flag is set to true at the organization level. This means all renaming of organizations and spaces **must** be done within the source configuration.
+> It should be noted that if an org or space is renamed manually it will be considered out of sync and could potentially be deleted. In such a case the org may be deleted if the ```delete_missing_entities``` is set to true in the ```config.yml``` file and the same will happen to the space if this flag is set to true at the organization level. If configured as such, this means all renaming of organizations and spaces **must** be done within the source configuration.
 
 1. Single Organization
 
