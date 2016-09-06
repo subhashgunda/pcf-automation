@@ -14,6 +14,7 @@ set -e
 # OPSMAN_USER
 # OPSMAN_PASSWD
 # OPSMAN_KEY (optional)
+# TEST_RUN (0/1)
 # PCF_CONFIG
 # LDAP_BIND_PASSWD (optional)
 
@@ -24,6 +25,7 @@ if [ -z "$DOWNLOADS_DIR" ] ||
     [ -z "$OPSMAN_HOST" ] ||
     [ -z "$OPSMAN_USER" ] ||
     [ -z "$OPSMAN_PASSWD" ] ||
+    [ -z "$TEST_RUN" ] ||
     [ -z "$PCF_CONFIG" ]; then
 
     echo "The required environment variables have not been set."
@@ -40,6 +42,11 @@ if [[ -e $DOWNLOADS_DIR/$PCF_CONFIG.zip.last ]]; then
     set -e
 fi
 
+test_run=""
+if [[ "$TEST_RUN" == "1" ]]; then
+    test_run="-t"
+fi
+
 if [[ $run_job -eq 1 ]]; then
 
     echo "Running Configuration!"
@@ -53,13 +60,15 @@ if [[ $run_job -eq 1 ]]; then
 		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
-			-w "$LDAP_BIND_PASSWD"
+			-w "$LDAP_BIND_PASSWD" \
+            $test_run
 	else
 		$SCRIPTS_DIR/configure-ert -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
 			-w "$LDAP_BIND_PASSWD" \
-			-k "$OPSMAN_KEY"
+			-k "$OPSMAN_KEY" \
+            $test_run
 	fi
 
     mv $DOWNLOADS_DIR/$PCF_CONFIG.zip $DOWNLOADS_DIR/$PCF_CONFIG.zip.last
