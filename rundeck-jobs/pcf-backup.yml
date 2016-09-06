@@ -8,7 +8,6 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-    filter: 'tags: pcf-dev'
   nodesSelectedByDefault: true
   options:
   - description: All backups older than the backup age in days will be deleted.
