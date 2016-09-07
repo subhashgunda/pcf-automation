@@ -7,7 +7,7 @@ if [[ -z $TOOLS_DIR ]]; then
     source $ROOT_DIR/scripts/common.sh
 fi
 
-if [[ -z $uaac ]] then
+if [[ -z $uaac ]]; then
     which uaac 2>&1 > /dev/null
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to find uaac cli."

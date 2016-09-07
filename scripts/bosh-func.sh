@@ -7,7 +7,7 @@ if [[ -z $TOOLS_DIR ]]; then
     source $ROOT_DIR/scripts/common.sh
 fi
 
-if [[ -z $bosh ]] then
+if [[ -z $bosh ]]; then
     which bosh 2>&1 > /dev/null
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to find bosh cli."
