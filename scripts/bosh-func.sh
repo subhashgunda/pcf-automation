@@ -75,7 +75,7 @@ function bosh::set_deployment() {
     $bosh deployment $dep_prefix.yml 2>&1 > /dev/null
 }
 
-function bosh::job() {
+function bosh::stop_job() {
     bosh::set_bosh_cli
 
     job_name=${1%%/*}
@@ -84,7 +84,7 @@ function bosh::job() {
     echo "yes" | $bosh stop $job_name $job_index
 }
 
-function bosh::job() {
+function bosh::start_job() {
     bosh::set_bosh_cli
 
     job_name=${1%%/*}
