@@ -7,7 +7,7 @@ if [[ -z $TOOLS_DIR ]]; then
     source $ROOT_DIR/scripts/common.sh
 fi
 
-function opsman::set_uaac_cli() {}
+function opsman::set_uaac_cli() {
     which uaac 2>&1 > /dev/null
     if [ $? -ne 0 ]; then
         which bundle 2>&1 > /dev/null
