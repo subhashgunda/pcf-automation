@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ -z $TOOLS_DIR ]]; then
+    source $(dirname $0)/common.sh
+fi
+
 which bosh 2>&1 > /dev/null
 if [ $? -ne 0 ]; then
     which bundle 2>&1 > /dev/null
@@ -9,9 +13,11 @@ if [ $? -ne 0 ]; then
     fi
     export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
     bosh="bundle exec bosh"
+else
+    bosh="bosh"
 fi
 
-function login() {
+function bosh::login() {
 
     local director_ip=$1
     local user=$2
@@ -25,13 +31,13 @@ function login() {
     fi
 }
 
-function status() {
+function bosh::status() {
     bosh_status=$($bosh status)
     echo -e "Status of currently targeted Bosh director..."
     echo -e "$bosh_status"
 }
 
-function vms() {
+function bosh::vms() {
 
     local deployment=$1
 
@@ -44,7 +50,7 @@ function vms() {
     echo -e "$bosh_vms"
 }
 
-function set_deployment() {
+function bosh::set_deployment() {
 
     local dep_prefix=$1
 
@@ -59,30 +65,30 @@ function set_deployment() {
     $bosh deployment $dep_prefix.yml
 }
 
-function stop_job() {
+function bosh::job() {
     job_name=${1%%/*}
     job_index=${1##*/}
     echo "Stopping job '$job_name' index '$job_index'..."
     echo "yes" | $bosh stop $job_name $job_index
 }
 
-function start_job() {
+function bosh::job() {
     job_name=${1%%/*}
     job_index=${1##*/}
     echo "Starting job '$job_name' index '$job_index'..."
     echo "yes" | $bosh start $job_name $job_index
 }
 
-function restart_job() {
+function bosh::restart_job() {
 
     local job_prefix=$1
 
     if [[ -n $job_prefix ]]; then
         for j in $(echo -e "$bosh_vms" | awk -v j="$job_prefix-" '$2~j { print $2 }'); do
-            stop_job $j
+            bosh::stop_job $j
         done
         for j in $(echo -e "$bosh_vms" | awk -v j="$job_prefix-" '$2~j { print $2 }'); do
-            start_job $j
+            bosh::start_job $j
         done
     fi
 }
