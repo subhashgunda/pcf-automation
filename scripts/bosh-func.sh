@@ -7,16 +7,12 @@ if [[ -z $TOOLS_DIR ]]; then
     source $ROOT_DIR/scripts/common.sh
 fi
 
-which bosh 2>&1 > /dev/null
-if [ $? -ne 0 ]; then
-    which bundle 2>&1 > /dev/null
+if [[ -z $bosh ]] then
+    which bosh 2>&1 > /dev/null
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to find bosh cli."
         exit 1
     fi
-    BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
-    bosh="bundle exec bosh"
-else
     bosh="bosh"
 fi
 
