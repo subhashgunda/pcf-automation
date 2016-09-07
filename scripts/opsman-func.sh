@@ -57,9 +57,9 @@ function opsman::get_director_user() {
         director_credentials=$(curl -k $OPSMAN_URL/api/v0/deployed/director/credentials/director_credentials \
             -X GET -H "Authorization: Bearer $opsman_token" 2> /dev/null)
     fi
-    echo -e "$director_credentials" | jq .credential.value.identity | sed 's|"||g'
+    echo -e "$director_credentials" | $TOOLS_DIR/jq .credential.value.identity | sed 's|"||g'
 }
 
 function opsman::get_director_password() {
-    echo -e "$director_credentials" | jq .credential.value.password | sed 's|"||g'
+    echo -e "$director_credentials" | $TOOLS_DIR/jq .credential.value.password | sed 's|"||g'
 }
