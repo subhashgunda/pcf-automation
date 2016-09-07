@@ -71,8 +71,8 @@ function bosh::get_deployment() {
     fi
 
     rm -f $dep_prefix.yml
-    $bosh download manifest $bosh_deployment $dep_prefix.yml
-    $bosh deployment $dep_prefix.yml
+    $bosh download manifest $bosh_deployment $dep_prefix.yml 2>&1 > /dev/null
+    $bosh deployment $dep_prefix.yml 2>&1 > /dev/null
 
     echo $bosh_deployment 
 }
