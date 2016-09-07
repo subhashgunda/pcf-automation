@@ -3,7 +3,11 @@
 set -x
 
 if [[ -z $TOOLS_DIR ]]; then
-    source $(dirname $0)/common.sh
+    if [[ -z $SCRIPTS_DIR ]]; then
+        source $(dirname $0)/common.sh
+    else
+        source $SCRIPTS_DIR/common.sh
+    fi
 fi
 
 which uaac 2>&1 > /dev/null
