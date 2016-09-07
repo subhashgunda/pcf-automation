@@ -15,7 +15,7 @@ function opsman::set_uaac_cli() {
             echo "ERROR! Unable to find uaac cli."
             exit 1
         fi
-        export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
+        export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile 
         uaac="bundle exec uaac"
     else
         uaac="uaac"
