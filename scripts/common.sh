@@ -1,6 +1,9 @@
 #!/bin/bash
 
-export ROOT_DIR=$(cd $(dirname $0)/.. && pwd)
+if [[ -z $ROOT_DIR ]]; then
+    ROOT_DIR=$(cd $(dirname $0)/.. && pwd)
+fi
+
 export CURR_DIR=$(pwd)
 
 case $(uname) in

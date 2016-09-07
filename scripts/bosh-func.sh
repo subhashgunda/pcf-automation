@@ -1,11 +1,10 @@
 #!/bin/bash
 
+if [[ -z $ROOT_DIR ]]; then
+    ROOT_DIR=$(cd $(dirname $0)/.. && pwd)
+fi
 if [[ -z $TOOLS_DIR ]]; then
-    if [[ -z $SCRIPTS_DIR ]]; then
-        source $(dirname $0)/common.sh
-    else
-        source $SCRIPTS_DIR/scripts/common.sh
-    fi
+    source $ROOT_DIR/scripts/common.sh
 fi
 
 which bosh 2>&1 > /dev/null
