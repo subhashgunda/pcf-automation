@@ -7,16 +7,23 @@ if [[ -z $TOOLS_DIR ]]; then
     source $ROOT_DIR/scripts/common.sh
 fi
 
-if [[ -z $bosh ]]; then
+function bosh::set_bosh_cli() {
     which bosh 2>&1 > /dev/null
     if [ $? -ne 0 ]; then
-        echo "ERROR! Unable to find bosh cli."
-        exit 1
+        which bundle 2>&1 > /dev/null
+        if [ $? -ne 0 ]; then
+            echo "ERROR! Unable to find bosh cli."
+            exit 1
+        fi
+        export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
+        bosh="bundle exec bosh"
+    else
+        bosh="bosh"
     fi
-    bosh="bosh"
-fi
+}
 
 function bosh::login() {
+    bosh::set_bosh_cli
 
     local director_ip=$1
     local user=$2
@@ -31,12 +38,15 @@ function bosh::login() {
 }
 
 function bosh::status() {
+    bosh::set_bosh_cli
+
     bosh_status=$($bosh status)
     echo -e "Status of currently targeted Bosh director..."
     echo -e "$bosh_status"
 }
 
 function bosh::vms() {
+    bosh::set_bosh_cli
 
     local deployment=$1
 
@@ -50,6 +60,7 @@ function bosh::vms() {
 }
 
 function bosh::set_deployment() {
+    bosh::set_bosh_cli
 
     local dep_prefix=$1
 
@@ -65,6 +76,8 @@ function bosh::set_deployment() {
 }
 
 function bosh::job() {
+    bosh::set_bosh_cli
+
     job_name=${1%%/*}
     job_index=${1##*/}
     echo "Stopping job '$job_name' index '$job_index'..."
@@ -72,6 +85,8 @@ function bosh::job() {
 }
 
 function bosh::job() {
+    bosh::set_bosh_cli
+    
     job_name=${1%%/*}
     job_index=${1##*/}
     echo "Starting job '$job_name' index '$job_index'..."
