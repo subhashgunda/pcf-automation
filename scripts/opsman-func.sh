@@ -1,12 +1,10 @@
 #!/bin/bash
 
-set -x
-
 if [[ -z $TOOLS_DIR ]]; then
     if [[ -z $SCRIPTS_DIR ]]; then
         source $(dirname $0)/common.sh
     else
-        source $SCRIPTS_DIR/common.sh
+        source $SCRIPTS_DIR/scripts/common.sh
     fi
 fi
 
@@ -62,5 +60,3 @@ function opsman::get_director_user() {
 function opsman::get_director_password() {
     echo -e "$director_credentials" | jq .credential.value.password | sed 's|"||g'
 }
-
-set +x
