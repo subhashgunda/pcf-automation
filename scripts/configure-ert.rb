@@ -256,7 +256,7 @@ end
 os = ( RUBY_PLATFORM =~ /darwin/ ? 'darwin'
 	: RUBY_PLATFORM =~ /linux/ ? 'linux' : '' )
 
-curdir = File.expand_path(File.dirname(__FILE__))
+curdir = File.expand_path(File.dirname(__FILE__) + "/..")
 @cf_cli = curdir + '/tools/' + os + '/cf'
 @ldapsearch_cli = curdir + '/tools/' + os + '/ldapsearch'
 
