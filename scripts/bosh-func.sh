@@ -59,7 +59,7 @@ function bosh::vms() {
     echo -e "$bosh_vms"
 }
 
-function bosh::set_deployment() {
+function bosh::get_deployment() {
     bosh::set_bosh_cli
 
     local dep_prefix=$1
@@ -73,6 +73,8 @@ function bosh::set_deployment() {
     rm -f $dep_prefix.yml
     $bosh download manifest $bosh_deployment $dep_prefix.yml
     $bosh deployment $dep_prefix.yml
+
+    echo $bosh_deployment 
 }
 
 function bosh::job() {
@@ -86,7 +88,7 @@ function bosh::job() {
 
 function bosh::job() {
     bosh::set_bosh_cli
-    
+
     job_name=${1%%/*}
     job_index=${1##*/}
     echo "Starting job '$job_name' index '$job_index'..."
