@@ -14,10 +14,7 @@ if [ $? -ne 0 ]; then
         echo "ERROR! Unable to find uaac cli."
         exit 1
     fi
-    export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
-    uaac="bundle exec uaac"
-else
-    uaac="uaac"
+    alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
 fi
 
 function opsman::login() {
@@ -28,10 +25,10 @@ function opsman::login() {
 
     OPSMAN_URL=https://$opsman_host
 
-    $uaac target https://$opsman_host/uaa --skip-ssl-validation
-    $uaac token owner get opsman $opsman_user -s '' -p $opsman_passwd
+    uaac target https://$opsman_host/uaa --skip-ssl-validation
+    uaac token owner get opsman $opsman_user -s '' -p $opsman_passwd
 
-    opsman_token=$($uaac context | awk '/access_token:/{ print $2 }')
+    opsman_token=$(uaac context | awk '/access_token:/{ print $2 }')
 }
 
 function opsman::get_installation() {
