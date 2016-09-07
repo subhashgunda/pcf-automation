@@ -99,7 +99,7 @@
         export OPSMAN_KEY="@option.opsman-key@"
         export TIMESTAMP="@option.timestamp@"
 
-        $SCRIPTS_DIR/run-pcf-restore.sh
+        $SCRIPTS_DIR/scripts/run-pcf-restore.sh
 
     keepgoing: false
     strategy: node-first

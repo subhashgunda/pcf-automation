@@ -1,14 +1,16 @@
 - description: PCF Environment Configuration
   executionEnabled: true
+  id: 501b590f-87d7-433c-a08d-528c70215d95
   loglevel: INFO
-  name: pcf-config-dev
+  name: pcf-config
   nodefilters:
     dispatch:
       excludePrecedence: true
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-  nodesSelectedByDefault: true
+    filter: 'tags: pcf-dev,pcf-prod-dc20'
+  nodesSelectedByDefault: false
   options:
   - description: Set this value to '1' to update the scripts from source control.
     name: clean
@@ -39,66 +41,68 @@
   sequence:
     commands:
     - script: |2
-                #!/bin/bash
+        #!/bin/bash
 
-                #
-                # Rundeck variables
-                #
+        #
+        # Rundeck variables
+        #
 
-                [ -z "@node.bitbucket@" ] && (
-                	echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
-                	exit 1
-                )
-                [ -z "@node.opsman-host@" ] && (
-                	echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
-                	exit 1
-                )
-                [ -z "@node.opsman-user@" ] && (
-                	echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
-                	exit 1
-                )
-                [ -z "@option.opsman-password@" ] && (
-                	echo "ERROR! The Ops Manager administration UI password needs to be provided."
-                	exit 1
-                )
-                [ -z "@node.pcf-config@" ] && (
-                	echo "ERROR! The Rundeck node environment variable \"pcf-config\" has not been set."
-                	exit 1
-                )
+        [ -z "@node.bitbucket@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+          exit 1
+        )
+        [ -z "@node.opsman-host@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
+          exit 1
+        )
+        [ -z "@node.opsman-user@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
+          exit 1
+        )
+        [ -z "@option.opsman-password@" ] && (
+          echo "ERROR! The Ops Manager administration UI password needs to be provided."
+          exit 1
+        )
+        [ -z "@node.pcf-config@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"pcf-config\" has not been set."
+          exit 1
+        )
 
-                export DOWNLOADS_DIR=$HOME/workspace/downloads
-                export SCRIPTS_DIR=$HOME/workspace/scripts
-                export BACKUP_DIR=$HOME/workspace/backups
-                export CONFIG_DIR=$HOME/workspace/configs
+        export DOWNLOADS_DIR=$HOME/workspace/downloads
+        export SCRIPTS_DIR=$HOME/workspace/scripts
+        export BACKUP_DIR=$HOME/workspace/backups
+        export CONFIG_DIR=$HOME/workspace/configs
 
-                if [ "@option.clean@" == "1" ]; then
-                    rm -fr $DOWNLOADS_DIR
-                    rm -fr $SCRIPTS_DIR
-                    rm -fr $CONFIG_DIR
-                fi
-                mkdir -p $DOWNLOADS_DIR
-                mkdir -p $BACKUP_DIR
-                mkdir -p $CONFIG_DIR
+        if [ "@option.clean@" == "1" ]; then
+            rm -fr $DOWNLOADS_DIR
+            rm -fr $SCRIPTS_DIR
+            rm -fr $CONFIG_DIR
+        fi
+        mkdir -p $DOWNLOADS_DIR
+        mkdir -p $BACKUP_DIR
+        mkdir -p $CONFIG_DIR
 
-                if [[ ! -e $SCRIPTS_DIR ]]; then
+        if [[ ! -e $SCRIPTS_DIR ]]; then
 
-                    curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
-                        -o $DOWNLOADS_DIR/pcf-automation.zip
+            curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
+                -o $DOWNLOADS_DIR/pcf-automation.zip
 
-                    unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
-                fi
+            unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
+        fi
 
-                curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/@node.pcf-config@ \
-                    -o $DOWNLOADS_DIR/@node.pcf-config@.zip
+        curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/@node.pcf-config@ \
+            -o $DOWNLOADS_DIR/@node.pcf-config@.zip
 
-                export OPSMAN_HOST="@node.opsman-host@"
-                export OPSMAN_USER="@node.opsman-user@"
-                export OPSMAN_PASSWD="@option.opsman-password@"
-                export OPSMAN_KEY="@option.opsman-key@"
-                export PCF_CONFIG="@node.pcf-config@"
-                export LDAP_BIND_PASSWD="@option.ldap-bind-password@"
-                export TEST_RUN="@option.test-run@"
+        export OPSMAN_HOST="@node.opsman-host@"
+        export OPSMAN_USER="@node.opsman-user@"
+        export OPSMAN_PASSWD="@option.opsman-password@"
+        export OPSMAN_KEY="@option.opsman-key@"
+        export PCF_CONFIG="@node.pcf-config@"
+        export LDAP_BIND_PASSWD="@option.ldap-bind-password@"
+        export TEST_RUN="@option.test-run@"
 
-                $SCRIPTS_DIR/run-pcf-config.sh
+        $SCRIPTS_DIR/scripts/run-pcf-config.sh
+        
     keepgoing: false
     strategy: node-first
+  uuid: 501b590f-87d7-433c-a08d-528c70215d95

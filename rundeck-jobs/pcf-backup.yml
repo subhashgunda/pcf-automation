@@ -1,35 +1,65 @@
 - description: PCF Backup
   executionEnabled: true
+  group: schedules
+  id: 442e57fa-7e49-4f9d-98f9-e1f2a36fb834
   loglevel: INFO
-  name: pcf-backup-dev
+  name: pcf-backup
   nodefilters:
     dispatch:
       excludePrecedence: true
       keepgoing: false
       rankOrder: ascending
-      threadcount: 1
+      threadcount: 2
+    filter: 'tags: pcf-dev,pcf-prod-dc20'
   nodesSelectedByDefault: true
+  notification:
+    onfailure:
+      email:
+        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
+        subject: 'NOK : pcf-backup-dev failed'
+    onstart:
+      email:
+        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
+        subject: pcf-backup-dev started
+    onsuccess:
+      email:
+        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
+        subject: 'OK : pcf-backup-dev succeded'
   options:
+  - description: All backups older than the backup age in days will be deleted.
+    name: backup-age
+    value: '1'
   - description: Set this value to '1' to update the scripts from source control.
     name: clean
     value: '0'
     values:
     - '0'
     - '1'
-  - description: Set this value to '1' to update the scripts from source control.
-    name: clean
   - description: Ops Manager encryption key required if the Web GUI was restarted or VM was rebooted for initializing the authentication system.
     name: opsman-key
     secure: true
     valueExposed: true
   - description: The Ops Manager Web UI administrator password.
     name: opsman-password
+    required: true
     secure: true
+    value: 2Secret4CF
     valueExposed: true
   - description: The user password to ssh into Ops Manager VM.
     name: opsman-ssh-password
+    required: true
     secure: true
+    value: 2Secret4CF
     valueExposed: true
+  schedule:
+    month: '*'
+    time:
+      hour: '22'
+      minute: '30'
+      seconds: '0'
+    weekday:
+      day: '*'
+    year: '*'
   scheduleEnabled: true
   sequence:
     commands:
@@ -84,7 +114,7 @@
             curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
                 -o $DOWNLOADS_DIR/pcf-automation.zip
 
-            unzip -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
+            unzip  -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
         fi
 
         export OPSMAN_HOST="@node.opsman-host@"
@@ -95,7 +125,8 @@
         export OPSMAN_KEY="@option.opsman-key@"
         export BACKUP_AGE="@option.backup-age@"
 
-        $SCRIPTS_DIR/run-pcf-backup.sh
-
+        $SCRIPTS_DIR/scripts/run-pcf-backup.sh
+        
     keepgoing: false
     strategy: node-first
+  uuid: 442e57fa-7e49-4f9d-98f9-e1f2a36fb834

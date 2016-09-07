@@ -1,0 +1,93 @@
+- description: Restarts a bosh job (service VM)
+  executionEnabled: true
+  loglevel: INFO
+  name: bosh-restart-job-dev
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      threadcount: 1
+  nodesSelectedByDefault: true
+  options:
+  - description: The IP of the Bosh director
+    name: bosh-director-ip
+    value: 10.35.39.3
+  - description: The bosh user's password.
+    name: bosh-password
+    secure: true
+    value: f893b1e36b697631a98a
+    valueExposed: true
+  - description: The user to log into the Bosh director as.
+    name: bosh-user
+    value: director
+  - description: The name pre-fix of the deployment
+    name: deployment
+  - description: The name pre-fix of the job to restart
+    name: job
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |
+        #!/bin/bash
+
+        set -e
+        #set -x
+
+        director_ip="@option.bosh-director-ip@"
+        user="@option.bosh-user@"
+        password="@option.bosh-password@"
+        dep_prefix="@option.deployment@"
+        job_prefix="@option.job@"
+
+        export BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile 
+        bosh="bundle exec bosh"
+
+        #
+        # Target director and login if not logged in
+        #
+
+        bosh_status=$($bosh status)
+        echo -e "Bosh status..."
+        echo -e "$bosh_status"
+
+        logged_in_user=$(echo -e "$bosh_status" | awk '/User/{ print $ 2}')
+        if [[ "$user" != "$logged_in_user" ]]; then
+            $bosh logout
+            echo -e "Targetting director."
+            echo -e "$user\n$password" | $bosh --ca-cert //var/tempest/workspaces/default/root_ca_certificate target $director_ip
+        fi
+
+        deployment=$($bosh deployments | awk -v d="$dep_prefix-" '$2~d { print $2 }')
+        if [[ -z $deployment ]]; then
+            echo "Unable to determine name for deployment prefix '$dep_prefix'."
+            exit 1
+        fi
+
+        rm -f $dep_prefix.yml
+        $bosh download manifest $deployment $dep_prefix.yml
+        $bosh deployment $dep_prefix.yml
+
+        bosh_vms=$($bosh vms $deployment --vitals)
+        echo -e "Status of all VMs in deployment '$deployment'..."
+        echo -e "$bosh_vms"
+
+        if [[ -n $job_prefix ]]; then
+            for j in $(echo -e "$bosh_vms" | awk -v j="$job_prefix-" '$2~j { print $2 }'); do
+                job_name=${j%%/*}
+                job_index=${j##*/}
+                echo "Stopping job '$job_name' index '$job_index'..."
+                echo "yes" | $bosh stop $job_name $job_index
+            done
+            for j in $(echo -e "$bosh_vms" | awk -v j="$job_prefix-" '$2~j { print $2 }'); do
+                job_name=${j%%/*}
+                job_index=${j##*/}
+                echo "Starting job '$job_name' index '$job_index'..."
+                echo "yes" | $bosh start $job_name $job_index
+            done
+        fi
+
+        #set +x
+        set +e
+    keepgoing: false
+    strategy: node-first
