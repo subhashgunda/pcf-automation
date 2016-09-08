@@ -37,11 +37,14 @@ if [[ ! -e $CONFIG_DIR/$PCF_CONFIG ]]; then
 else
     pushd $CONFIG_DIR/$PCF_CONFIG
     git checkout master
-    git fetch origin
 
-    if [ -z $LOCAL = $REMOTE ]; then
+    LOCAL=$(git rev-parse @)
+    REMOTE=$(git rev-parse @{u})
+    BASE=$(git merge-base @ @{u})
+
+    if [[ $LOCAL == $REMOTE ]]; then
         run_job=0
-    elif [ $LOCAL = $BASE ]; then
+    elif [[ $LOCAL == $BASE ]]; then
         git pull
     else
         echo "Unable to determine state of '$CONFIG_GIT_URL'."
