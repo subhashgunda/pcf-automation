@@ -18,7 +18,15 @@ The ```rundeck-jobs``` folder contain rundeck job specifications that are meant 
 
 To setup rundeck you will need to configure your Pivotal OpsManager VM as a node. If necessary setup an ssh-key to enable Rundeck to ssh into the node without a password challenge. You will also need to generate a ssh key, which OpsManager can use to clone the automation and configuration git repositories. Run the following command in OpsManager and add the contents of the generated public key to the git repositories. Alternatively you can reuse an already generated ssh key whose public key has been added to the git repositories.
 
-```echo "" | ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q```
+```echo "" | ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -q; chmod 0400 ~/.ssh/id_rsa```
+
+You will also need to create a ssh config file '```$HOME/.ssh/config```' to ignore the git host if it cannot be verified.
+
+```
+Host ddev-bbucket01-p-lb.axadmin.net
+ StrictHostKeyChecking no
+ IdentityFile /home/ubuntu/.ssh/id_rsa
+```
 
 Configure the node to have the following node variables.
 
