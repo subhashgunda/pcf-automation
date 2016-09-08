@@ -27,7 +27,6 @@
     name: opsman-password
     required: true
     secure: true
-    value: 2Secret4CF
     valueExposed: true
   scheduleEnabled: true
   sequence:
