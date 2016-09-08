@@ -66,13 +66,13 @@ if [[ $run_job -eq 1 ]]; then
 	cd $CONFIG_DIR/$PCF_CONFIG
 	if [ -z "$OPSMAN_KEY" ]; then
 
-		echo $ROOT_DIR/scripts/configure-ert.rb -o $OPSMAN_HOST \
+		$ROOT_DIR/scripts/configure-ert.rb -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
 			-w "$LDAP_BIND_PASSWD" \
             $test_run
 	else
-		echo $ROOT_DIR/scripts/configure-ert.rb -o $OPSMAN_HOST \
+		$ROOT_DIR/scripts/configure-ert.rb -o $OPSMAN_HOST \
 			-u "$OPSMAN_USER" \
 			-p "$OPSMAN_PASSWD" \
 			-w "$LDAP_BIND_PASSWD" \
