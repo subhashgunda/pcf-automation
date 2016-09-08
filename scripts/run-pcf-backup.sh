@@ -27,6 +27,7 @@ if [ -z "$ROOT_DIR" ] ||
 fi
 
 source $ROOT_DIR/scripts/common.sh
+cd $TOOLS_DIR
 
 if [ -n "$OPSMAN_KEY" ]; then
     ENCRYPTION_OPTION="--encryptionkey '$OPSMAN_KEY'"
