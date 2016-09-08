@@ -30,7 +30,7 @@ fi
 
 run_job=1
 if [[ ! -e $CONFIG_DIR/$PCF_CONFIG ]]; then
-    git clone $CONFIG_GIT_URL --branch master --single-branch $ROOT_DIR
+    git clone $CONFIG_GIT_URL --branch master --single-branch $CONFIG_DIR/$PCF_CONFIG
     pushd $ROOT_DIR
     git checkout master
     popd
