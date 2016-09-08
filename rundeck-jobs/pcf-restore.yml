@@ -1,17 +1,20 @@
-- description: PCF Backup
+- description: PCF Restore
   executionEnabled: true
+  id: 852594b2-3183-44d5-a12b-92b649eb793a
   loglevel: INFO
-  name: pcf-backup-dev
+  name: pcf-restore
   nodefilters:
     dispatch:
       excludePrecedence: true
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-  nodesSelectedByDefault: true
+    filter: 'tags: pcf-dev,pcf-prod-dc20'
+  nodesSelectedByDefault: false
   options:
   - description: The timestamped folder name containing the backup to be restored.
     name: timestamp
+    required: true
   - description: Set this value to '1' to update the scripts from source control.
     name: clean
     value: '0'
@@ -24,10 +27,12 @@
     valueExposed: true
   - description: The Ops Manager Web UI administrator password.
     name: opsman-password
+    required: true
     secure: true
     valueExposed: true
   - description: The user password to ssh into Ops Manager VM.
     name: opsman-ssh-password
+    required: true
     secure: true
     valueExposed: true
   scheduleEnabled: true
@@ -35,6 +40,8 @@
     commands:
     - script: |
         #!/bin/bash
+
+        #set -x
 
         #
         # Rundeck variables
@@ -69,27 +76,34 @@
             exit 1
         )
 
-        export DOWNLOADS_DIR=$HOME/workspace/downloads
-        export SCRIPTS_DIR=$HOME/workspace/scripts
-        export BACKUP_DIR=$HOME/workspace/backups
-        export CONFIG_DIR=$HOME/workspace/configs
+        #
+        # Setup workspace
+        #
+
+        export ROOT_DIR=$HOME/workspace/scripts
+        export BACKUP_DIR=/backup/@node.name@
 
         if [ "@option.clean@" == "1" ]; then
-            rm -fr $DOWNLOADS_DIR
-            rm -fr $SCRIPTS_DIR
-            rm -fr $CONFIG_DIR
+            rm -fr $ROOT_DIR
         fi
-        mkdir -p $DOWNLOADS_DIR
+        if [[ ! -e $ROOT_DIR ]]; then
+            git_host="@node.bitbucket@"
+            git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            pushd $ROOT_DIR
+            git checkout master
+            popd
+        else
+            pushd $ROOT_DIR
+            git checkout master
+            git pull
+            popd
+        fi
+
         mkdir -p $BACKUP_DIR
-        mkdir -p $CONFIG_DIR
 
-        if [[ ! -e $SCRIPTS_DIR ]]; then
-
-            curl -v -s -k -L https://@node.bitbucket@/plugins/servlet/archive/projects/CLOUDF/repos/pcf-automation \
-                -o $DOWNLOADS_DIR/pcf-automation.zip
-
-            unzip -o $DOWNLOADS_DIR/pcf-automation.zip -d $SCRIPTS_DIR
-        fi
+        #
+        # Set variables required by runner script
+        #
 
         export OPSMAN_HOST="@node.opsman-host@"
         export OPSMAN_USER="@node.opsman-user@"
@@ -99,7 +113,9 @@
         export OPSMAN_KEY="@option.opsman-key@"
         export TIMESTAMP="@option.timestamp@"
 
-        $SCRIPTS_DIR/scripts/run-pcf-restore.sh
+        $ROOT_DIR/scripts/run-pcf-restore.sh
 
+        #set +x
     keepgoing: false
     strategy: node-first
+  uuid: 852594b2-3183-44d5-a12b-92b649eb793a
