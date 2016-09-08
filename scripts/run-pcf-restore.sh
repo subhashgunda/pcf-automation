@@ -4,9 +4,7 @@
 
 # Environment variables
 #
-# DOWNLOADS_DIR
-# SCRIPTS_DIR
-# CONFIG_DIR
+# ROOT_DIR
 # BACKUP_DIR
 #
 # OPSMAN_HOST
@@ -17,10 +15,8 @@
 # OPSMAN_KEY (optional)
 # TIMESTAMP
 
-if [ -z "$DOWNLOADS_DIR" ] ||
-    [ -z "$SCRIPTS_DIR" ] ||
+if [ -z "$ROOT_DIR" ] ||
     [ -z "$BACKUP_DIR" ] ||
-    [ -z "$CONFIG_DIR" ] ||
     [ -z "$OPSMAN_HOST" ] ||
     [ -z "$OPSMAN_USER" ] ||
     [ -z "$OPSMAN_SSH_USER" ] ||
@@ -31,17 +27,7 @@ if [ -z "$DOWNLOADS_DIR" ] ||
     exit 1
 fi
 
-case $(uname) in
-    Linux)
-        cd $SCRIPTS_DIR/tools/linux
-        ;;
-    Darwin)
-        cd $SCRIPTS_DIR/tools/darwin
-        ;;
-    *)
-        echo "ERROR: Unable to identify OS type."
-        exit 1
-esac
+source $ROOT_DIR/scripts/common.sh
 
 if [ -n "$OPSMAN_KEY" ]; then
     ENCRYPTION_OPTION="--encryptionkey '$OPSMAN_KEY'"
