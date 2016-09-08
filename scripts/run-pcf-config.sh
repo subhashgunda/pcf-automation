@@ -37,6 +37,7 @@ if [[ ! -e $CONFIG_DIR/$PCF_CONFIG ]]; then
 else
     pushd $CONFIG_DIR/$PCF_CONFIG
     git checkout master
+    git fetch origin
 
     LOCAL=$(git rev-parse @)
     REMOTE=$(git rev-parse @{u})
