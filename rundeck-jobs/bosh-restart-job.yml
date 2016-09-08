@@ -38,7 +38,7 @@
         #set -x
 
         #
-        # Setup workspace
+        # Rundeck variables
         #
 
         [ -z "@node.bitbucket@" ] && (
@@ -62,20 +62,15 @@
           exit 1
         )
 
+        #
+        # Setup workspace
+        #
+
         export ROOT_DIR=$HOME/workspace/scripts
-        export DOWNLOADS_DIR=$HOME/workspace/downloads
-        export BACKUP_DIR=$HOME/workspace/backups
-        export CONFIG_DIR=$HOME/workspace/configs
 
         if [ "@option.clean@" == "1" ]; then
-            rm -fr $DOWNLOADS_DIR
             rm -fr $ROOT_DIR
-            rm -fr $CONFIG_DIR
         fi
-        mkdir -p $DOWNLOADS_DIR
-        mkdir -p $BACKUP_DIR
-        mkdir -p $CONFIG_DIR
-
         if [[ ! -e $ROOT_DIR ]]; then
             git_host="@node.bitbucket@"
             git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
@@ -88,7 +83,7 @@
             git pull
             popd
         fi
-        	
+        
         #
         # Initialize script
         #
