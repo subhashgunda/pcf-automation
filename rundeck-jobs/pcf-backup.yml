@@ -43,13 +43,11 @@
     name: opsman-password
     required: true
     secure: true
-    value: 2Secret4CF
     valueExposed: true
   - description: The user password to ssh into Ops Manager VM.
     name: opsman-ssh-password
     required: true
     secure: true
-    value: 2Secret4CF
     valueExposed: true
   schedule:
     month: '*'
