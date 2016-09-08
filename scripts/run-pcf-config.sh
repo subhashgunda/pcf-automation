@@ -63,9 +63,6 @@ if [[ $run_job -eq 1 ]]; then
 
     echo "Running Configuration!"
 
-	rm -fr $CONFIG_DIR/$PCF_CONFIG
-	unzip -o $DOWNLOADS_DIR/$PCF_CONFIG.zip -d $CONFIG_DIR/$PCF_CONFIG
-
 	cd $CONFIG_DIR/$PCF_CONFIG
 	if [ -z "$OPSMAN_KEY" ]; then
 
