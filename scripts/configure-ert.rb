@@ -53,6 +53,11 @@ def get_arg_value(key_short, key_long, required = false)
 	value
 end
 
+def generate_password(length = 8)
+	@pwd_chars ||= [('a'..'z'), ('A'..'Z'), ('0'..'9')].map { |i| i.to_a }.flatten
+	(0...length).map { @pwd_chars[rand(@pwd_chars.length)] }.join
+end
+
 def exec_cmd(cmd, message, simulate = false)
 	puts "DEBUG: Exec => #{cmd.split.join(' ')}" if @verbose_mode
 	if !simulate
@@ -749,6 +754,47 @@ cf_quota_group_list.each{ |n|
 	exec_cmd( "#{@cf_cli} delete-quota #{n} -f",
 		"Unable to delete org quota #{n}.", @test_mode )
 } if @delete_missing_entities
+
+#
+# Create users without any
+#
+
+Dir.glob('users/*.yml') do |user_file|
+	
+	users = []
+	user_data = YAML.load_file(user_file)
+
+	if user_data.has_key?('users')
+		users = user_data['users']
+	else
+		users += [ user_data ]
+	end
+
+	users.each do |user|
+
+		user_name = user['user-name']
+		roles = user['roles']
+
+		if user['is-ldap-user']
+			add_user(user_name)
+		else
+			passwd = user['password']
+			if passwd.nil?
+				passwd = generate_password 
+				puts "Creating CF only user '#{user_name}' with password '#{passwd}'."
+			else
+				puts "Creating CF only user '#{user_name}'."
+			end
+			exec_cmd( "#{@cf_cli} create-user #{user_name} '#{passwd}'",
+				'Unable to create user to #{user_name}.', @test_mode )
+		end
+		
+		roles.each do |role|
+			exec_cmd( "#{@uaac} member add #{role} #{user_name}",
+				"Unable to add role '#{role}' to user '#{user_name}'.", @test_mode )
+		end
+	end
+end
 
 # Clean up LDAP users that no long exist in LDAP
 
