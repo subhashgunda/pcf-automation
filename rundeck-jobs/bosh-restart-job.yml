@@ -9,7 +9,7 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-    filter: 'tags: pcf-dev,pcf-prod-dc20'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
   nodesSelectedByDefault: false
   options:
   - description: Set this value to '1' to update the scripts from source control.
@@ -40,9 +40,9 @@
         # Rundeck variables
         #
 
-        [ -z "@node.bitbucket@" ] && (
-          echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
-          exit 1
+        [ -z "@node.git@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"git\" has not been set."
+            exit 1
         )
         [ -z "@node.opsman-host@" ] && (
           echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
@@ -71,8 +71,8 @@
             rm -fr $ROOT_DIR
         fi
         if [[ ! -e $ROOT_DIR ]]; then
-            git_host="@node.bitbucket@"
-            git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            GIT_URL="@node.git@"
+            git clone $GIT_URL/pcf-automation.git --branch master --single-branch $ROOT_DIR
             pushd $ROOT_DIR
             git checkout master
             popd

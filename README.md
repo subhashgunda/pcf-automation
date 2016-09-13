@@ -30,7 +30,7 @@ Host ddev-bbucket01-p-lb.axadmin.net
 
 Configure the node to have the following node variables.
 
-* *git-url* - url where the automation script archive can be downloaded from
+* *git* - url where the automation script archive can be downloaded from
 * *opsman-host* - the host name (or IP) of the OpsManager VM. This needs to be the name/IP used when OpsManager's UAA was initially setup.
 * *opsman-user* - the OpsManager's admin user
 * *opsman-ssh-user* - the SSH user used to login to the OpsManager VM

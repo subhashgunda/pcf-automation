@@ -9,7 +9,7 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-    filter: 'tags: pcf-dev,pcf-prod-dc20'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
   nodesSelectedByDefault: false
   options:
   - description: Set this value to '1' to update the scripts from source control.
@@ -49,9 +49,9 @@
         # Rundeck variables
         #
 
-        [ -z "@node.bitbucket@" ] && (
-          echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
-          exit 1
+        [ -z "@node.git@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"git\" has not been set."
+            exit 1
         )
         [ -z "@node.opsman-host@" ] && (
           echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
@@ -83,9 +83,9 @@
         fi
         mkdir -p $CONFIG_DIR
 
-        git_host="@node.bitbucket@"
+        GIT_URL="@node.git@"
         if [[ ! -e $ROOT_DIR ]]; then
-            git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            git clone $GIT_URL/pcf-automation.git --branch master --single-branch $ROOT_DIR
             pushd $ROOT_DIR
             git checkout master
             popd
@@ -103,7 +103,7 @@
         export PCF_CONFIG="@node.pcf-config@"
         export LDAP_BIND_PASSWD="@option.ldap-bind-password@"
         export TEST_RUN="@option.test-run@"
-        export CONFIG_GIT_URL="ssh://git@$git_host:7999/cloudf/$PCF_CONFIG.git"
+        export CONFIG_GIT_URL="$GIT_URL/$PCF_CONFIG.git"
 
         $ROOT_DIR/scripts/run-pcf-config.sh
 

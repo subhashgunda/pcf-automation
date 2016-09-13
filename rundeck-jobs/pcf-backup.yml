@@ -10,13 +10,14 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 2
-    filter: 'tags: pcf-dev,pcf-prod-dc20'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
   nodesSelectedByDefault: true
   notification:
     onfailure:
       email:
+        attachLog: true
         recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
-        subject: 'NOK : pcf-backup-dev failed'
+        subject: 'NOK : PCF backup succeeded on deployments "${execution.succeededNodeListString}", but failed on deployments "${execution.failedNodeListString}".'
     onstart:
       email:
         recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
@@ -24,7 +25,7 @@
     onsuccess:
       email:
         recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
-        subject: 'OK : pcf-backup-dev succeded'
+        subject: 'OK :  PCF backup succeeded on deployments "${execution.succeededNodeListString}".'
   options:
   - description: All backups older than the backup age in days will be deleted.
     name: backup-age
@@ -41,11 +42,13 @@
     valueExposed: true
   - description: The Ops Manager Web UI administrator password.
     name: opsman-password
+    value: '****'
     required: true
     secure: true
     valueExposed: true
   - description: The user password to ssh into Ops Manager VM.
     name: opsman-ssh-password
+    value: '****'
     required: true
     secure: true
     valueExposed: true
@@ -70,8 +73,8 @@
         # Rundeck variables
         #
 
-        [ -z "@node.bitbucket@" ] && (
-            echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+        [ -z "@node.git@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"git\" has not been set."
             exit 1
         )
         [ -z "@node.opsman-host@" ] && (
@@ -106,8 +109,8 @@
             rm -fr $ROOT_DIR
         fi
         if [[ ! -e $ROOT_DIR ]]; then
-            git_host="@node.bitbucket@"
-            git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            GIT_URL="@node.git@"
+            git clone $GIT_URL/pcf-automation.git --branch master --single-branch $ROOT_DIR
             pushd $ROOT_DIR
             git checkout master
             popd

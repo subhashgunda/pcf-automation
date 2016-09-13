@@ -9,7 +9,7 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 1
-    filter: 'tags: pcf-dev,pcf-prod-dc20'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
   nodesSelectedByDefault: false
   options:
   - description: The timestamped folder name containing the backup to be restored.
@@ -47,8 +47,8 @@
         # Rundeck variables
         #
 
-        [ -z "@node.bitbucket@" ] && (
-            echo "ERROR! The Rundeck node environment variable \"bitbucket\" has not been set."
+        [ -z "@node.git@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"git\" has not been set."
             exit 1
         )
         [ -z "@node.opsman-host@" ] && (
@@ -75,20 +75,24 @@
             echo "ERROR! The Rundeck job runtime variable \"timestamp\" has not been set."
             exit 1
         )
+        [ -z "@node.pcf-env@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"pcf-env\" has not been set."
+            exit 1
+        )
 
         #
         # Setup workspace
         #
 
         export ROOT_DIR=$HOME/workspace/scripts
-        export BACKUP_DIR=/backup/@node.name@
+        export BACKUP_DIR=/backup/@node.pcf-env@
 
         if [ "@option.clean@" == "1" ]; then
             rm -fr $ROOT_DIR
         fi
         if [[ ! -e $ROOT_DIR ]]; then
-            git_host="@node.bitbucket@"
-            git clone ssh://git@$git_host:7999/cloudf/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            GIT_URL="@node.git@"
+            git clone $GIT_URL/pcf-automation.git --branch master --single-branch $ROOT_DIR
             pushd $ROOT_DIR
             git checkout master
             popd
