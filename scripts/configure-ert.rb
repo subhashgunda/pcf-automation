@@ -776,7 +776,7 @@ Dir.glob('users/*.yml') do |user_file|
 		roles = user['roles']
 
 		if !user_exists?(user_name)
-		
+
 			if user['is-ldap-user']
 				add_user(user_name)
 			else
@@ -790,11 +790,15 @@ Dir.glob('users/*.yml') do |user_file|
 				exec_cmd( "#{@cf_cli} create-user #{user_name} '#{passwd}'",
 					'Unable to create user to #{user_name}.', @test_mode )
 			end
+		else
+			user_detail = %x(#{@uaac} user get '#{user_name}')
 		end
 
-		roles.each do |role|
-			exec_cmd( "#{@uaac} member add #{role} #{user_name}",
-				"Unable to add role '#{role}' to user '#{user_name}'.", @test_mode )
+		roles.each do |role|		
+			if user_detail.nil? || (user_detail=~/display: #{role}$/).nil?
+				exec_cmd( "#{@uaac} member add #{role} #{user_name}",
+					"Unable to add role '#{role}' to user '#{user_name}'.", @test_mode )
+			end
 		end
 	end
 end
