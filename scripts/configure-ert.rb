@@ -756,7 +756,7 @@ cf_quota_group_list.each{ |n|
 } if @delete_missing_entities
 
 #
-# Create users without any
+# Create users
 #
 
 Dir.glob('users/*.yml') do |user_file|
