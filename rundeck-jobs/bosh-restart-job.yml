@@ -105,7 +105,10 @@
         bosh::login $(opsman::get_director_ip) $(opsman::get_director_user) $(opsman::get_director_password)
         bosh::set_deployment $dep_prefix
         bosh::vms $bosh_deployment
-        bosh::restart_job $job_prefix
+        
+        if [[ -n $job_prefix ]]; then
+            bosh::restart_job $job_prefix
+        fi
 
         #set +x
     keepgoing: false
