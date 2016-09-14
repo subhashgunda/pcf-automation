@@ -84,19 +84,27 @@ function bosh::set_deployment() {
 function bosh::stop_job() {
     bosh::set_bosh_cli
 
-    job_name=${1%%/*}
-    job_index=${1##*/}
-    echo "Stopping job '$job_name' index '$job_index'..."
-    echo "yes" | $bosh stop $job_name $job_index
+    local vm_name=${1%%/*}
+    local vm_index=${1##*/}
+    echo "Stopping job '$vm_name' index '$vm_index'..."
+    echo "yes" | $bosh stop $vm_name $vm_index
 }
 
 function bosh::start_job() {
     bosh::set_bosh_cli
 
-    job_name=${1%%/*}
-    job_index=${1##*/}
-    echo "Starting job '$job_name' index '$job_index'..."
-    echo "yes" | $bosh start $job_name $job_index
+    local vm_name=${1%%/*}
+    local vm_index=${1##*/}
+    echo "Starting job '$vm_name' index '$vm_index'..."
+    echo "yes" | $bosh start $vm_name $vm_index
+}
+
+function bosh::ssh() {
+    bosh::set_bosh_cli
+
+    local vm=$1
+    local cmd=$2
+    echo -e "sudo su -\n$2\nexit\n" | $bosh ssh $vm
 }
 
 function bosh::restart_job() {
