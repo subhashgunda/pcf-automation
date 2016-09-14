@@ -67,7 +67,7 @@ function bosh::set_deployment() {
     local dep_prefix=$1
     local manifest_file=$(bosh::status | awk '/Manifest/{ print $ 2}')
 
-    if [[ "$manifest_file"!="/tmp/$dep_prefix.yml" ]]
+    if [[ "$manifest_file"!="/tmp/$dep_prefix.yml" ]]; then
         bosh_deployment=$($bosh deployments 2>/dev/null | awk -v d="$dep_prefix-" '$2~d { print $2 }')
         if [[ -z $bosh_deployment ]]; then
             echo "Unable to determine name for deployment prefix '$dep_prefix'."
