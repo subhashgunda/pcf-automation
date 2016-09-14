@@ -73,6 +73,7 @@ function bosh::set_deployment() {
             echo "Unable to determine name for deployment prefix '$dep_prefix'."
             exit 1
         fi
+        rm -f /tmp/$dep_prefix.yml
         $bosh download manifest $bosh_deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
         $bosh deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
     else
