@@ -25,7 +25,9 @@ function bosh::set_bosh_cli() {
 function bosh::status() {
     bosh::set_bosh_cli
 
-    bosh_status=$($bosh status)
+    if [[ -z $bosh_status ]]; then
+        bosh_status=$($bosh status)
+    fi
     echo -e "Status of currently targeted Bosh director..."
     echo -e "$bosh_status"
 }
@@ -63,16 +65,17 @@ function bosh::set_deployment() {
     bosh::set_bosh_cli
 
     local dep_prefix=$1
+    local manifest_file=$(bosh::status | awk '/Manifest/{ print $ 2}')
 
-    bosh_deployment=$($bosh deployments 2>/dev/null | awk -v d="$dep_prefix-" '$2~d { print $2 }')
-    if [[ -z $bosh_deployment ]]; then
-        echo "Unable to determine name for deployment prefix '$dep_prefix'."
-        exit 1
+    if [[ "$manifest_file"!="/tmp/$dep_prefix.yml" ]]
+        bosh_deployment=$($bosh deployments 2>/dev/null | awk -v d="$dep_prefix-" '$2~d { print $2 }')
+        if [[ -z $bosh_deployment ]]; then
+            echo "Unable to determine name for deployment prefix '$dep_prefix'."
+            exit 1
+        fi
+        $bosh download manifest $bosh_deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
+        $bosh deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
     fi
-
-    rm -f $dep_prefix.yml
-    $bosh download manifest $bosh_deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
-    $bosh deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
 }
 
 function bosh::stop_job() {
