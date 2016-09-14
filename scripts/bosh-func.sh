@@ -75,6 +75,8 @@ function bosh::set_deployment() {
         fi
         $bosh download manifest $bosh_deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
         $bosh deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
+    else
+        bosh_deployment=$(cat $manifest_file | awk '/^name:/{ print $2 }')
     fi
 }
 
