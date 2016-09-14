@@ -32,8 +32,10 @@ function opsman::login() {
 
     OPSMAN_URL=https://$opsman_host
 
+    set -e
     $uaac target https://$opsman_host/uaa --skip-ssl-validation
     $uaac token owner get opsman $opsman_user -s '' -p $opsman_passwd
+    set +e
 
     opsman_token=$($uaac context | awk '/access_token:/{ print $2 }')
 }
