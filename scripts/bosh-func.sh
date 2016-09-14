@@ -22,6 +22,14 @@ function bosh::set_bosh_cli() {
     fi
 }
 
+function bosh::status() {
+    bosh::set_bosh_cli
+
+    bosh_status=$($bosh status)
+    echo -e "Status of currently targeted Bosh director..."
+    echo -e "$bosh_status"
+}
+
 function bosh::login() {
     bosh::set_bosh_cli
 
@@ -29,20 +37,12 @@ function bosh::login() {
     local user=$2
     local password=$3
 
-    logged_in_user=$(echo -e "$bosh_status" | awk '/User/{ print $ 2}')
+    logged_in_user=$(bosh::status | awk '/User/{ print $ 2}')
     if [[ "$user" != "$logged_in_user" ]]; then
         $bosh logout
         echo -e "Targetting director."
         echo -e "$user\n$password" | $bosh --ca-cert //var/tempest/workspaces/default/root_ca_certificate target $director_ip
     fi
-}
-
-function bosh::status() {
-    bosh::set_bosh_cli
-
-    bosh_status=$($bosh status)
-    echo -e "Status of currently targeted Bosh director..."
-    echo -e "$bosh_status"
 }
 
 function bosh::vms() {
