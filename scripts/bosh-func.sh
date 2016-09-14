@@ -71,8 +71,8 @@ function bosh::set_deployment() {
     fi
 
     rm -f $dep_prefix.yml
-    $bosh download manifest $bosh_deployment $dep_prefix.yml 2>&1 > /dev/null
-    $bosh deployment $dep_prefix.yml 2>&1 > /dev/null
+    $bosh download manifest $bosh_deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
+    $bosh deployment /tmp/$dep_prefix.yml 2>&1 > /dev/null
 }
 
 function bosh::stop_job() {
