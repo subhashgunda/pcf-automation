@@ -41,9 +41,11 @@ function bosh::login() {
 
     logged_in_user=$(bosh::status | awk '/User/{ print $ 2}')
     if [[ "$user" != "$logged_in_user" ]]; then
+        set -e
         $bosh logout
         echo -e "Targetting director."
         echo -e "$user\n$password" | $bosh --ca-cert //var/tempest/workspaces/default/root_ca_certificate target $director_ip
+        set +e
     fi
 }
 
