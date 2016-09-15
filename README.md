@@ -245,7 +245,7 @@ The organization yml file could have one of the following structures. Configurat
     default_space: sandbox
     ```
 
-The user yml file can be used to add users to the UAA with specific OAuth roles. The file may have one of the following formats.
+The user yml file can be used to add users to UAA with specific OAuth roles. The file may have one of the following formats.
 
 > Note that users added using this method will not be deleted if the file is removed. To ensure a user added using this method is deleted, first delete the file from source control and then delete the user manually via the CF CLI.
 
