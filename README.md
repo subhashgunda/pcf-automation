@@ -136,6 +136,9 @@ my_config/
         org2.yml
         .
         .
+    users/
+        user1.yml              <-- user with no org/space assignment
+        user2.yml
 ```
 
 The "config.yml" file should have the following structure
@@ -240,6 +243,37 @@ The organization yml file could have one of the following structures. Configurat
 
     default_quota: small
     default_space: sandbox
+    ```
+
+The user yml file can be used to add users to the UAA with specific OAuth roles. The file may have one of the following formats.
+
+> Note that users added using this method will not be deleted if the file is removed. To ensure a user added using this method is deleted, first delete the file from source control and then delete the user manually via the CF CLI.
+
+1. Single user
+
+    ```
+    ---
+    user-name: firehose-user
+    is-ldap-user: false
+    password: firehose
+    roles: [ 'cloud_controller.admin', 'doppler.firehose' ]
+    ```
+
+2. Multiple users
+
+    ```
+    users:
+    - user-name: user1
+      is-ldap-user: false
+      password: abcd1234
+      roles: [ 'cloud_controller.admin' ]
+    - user-name: user2
+      is-ldap-user: false
+      password: wxyz1234
+      roles: [ 'cloud_controller.admin' ]
+    .
+    .
+    .
     ```
 
 The script will call the UAA API via the "uaac" CLI to determine if a user exists before assigning him/her to an org or space role. Missing users will be uploaded to UAA and added to the Cloud Controller database. If LDAP configuration is provided, only users that can be queried will be added with the correct UAA attributes. This would enable LDAP users to have immediate access to their respective tenants when they login to CloudFoundry.

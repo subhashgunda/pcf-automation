@@ -1,0 +1,5 @@
+---
+user-name: firehose-user
+is-ldap-user: false
+password: firehose
+roles: [ 'cloud_controller.admin', 'doppler.firehose' ]
