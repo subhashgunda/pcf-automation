@@ -37,9 +37,9 @@ fi
 tiles=(
 #    ops-manager
     elastic-runtime
-    mysql-tile
-# 	redis-tile
-# 	rabbitmq
+#    mysql-tile
+#    redis-tile
+#    rabbitmq
 )
 
 BACKUP_TIMESTAMP_DIR=$BACKUP_DIR/$TIMESTAMP
