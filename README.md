@@ -4,16 +4,13 @@ This repository contains scripts that can be used to automate Pivotal CloudFound
 
 ## Automation Jobs
 
-The ```rundeck-jobs``` folder contain rundeck job specifications that are meant to be run from within a Pivotal OpsManager instance. The jobs download this repository and runs the scripts locally as the default Pivotal OpsManager user named ```ubuntu```. The jobs create a workspace directory within the user's home directory where all scripts, configuration and data is maintained.
+The ```rundeck-jobs``` folder contain rundeck job specifications that are meant to be run from within a Pivotal OpsManager instance. The jobs download this repository and run the scripts locally as the default Pivotal OpsManager user named ```ubuntu```. They create a workspace directory within the user's home directory where all scripts and configuration are maintained.
 
 ```
 /home/ubuntu/
     workspace/
-        downloads/
         scripts/
         configs/
-        backups/              <-- Folder where all backups will be written to. 
-                                  If possible set this up as a remote NFS mount.
 ```
 
 To setup rundeck you will need to configure your Pivotal OpsManager VM as a node. If necessary setup an ssh-key to enable Rundeck to ssh into the node without a password challenge. You will also need to generate a ssh key, which OpsManager can use to clone the automation and configuration git repositories. Run the following command in OpsManager and add the contents of the generated public key to the git repositories. Alternatively you can reuse an already generated ssh key whose public key has been added to the git repositories.
@@ -28,7 +25,7 @@ Host ddev-bbucket01-p-lb.axadmin.net
  IdentityFile /home/ubuntu/.ssh/id_rsa
 ```
 
-Configure the node to have the following node variables.
+Configure the rundeck node to have the following node variables.
 
 * *git* - url where the automation script archive can be downloaded from
 * *opsman-host* - the host name (or IP) of the OpsManager VM. This needs to be the name/IP used when OpsManager's UAA was initially setup.
@@ -59,53 +56,7 @@ Each of the Rundeck jobs also has job specific option variables that need to be 
     - *option.opsman-key* - the encryption key required to unlock OpsManager after reboot
     - *option.timestamp* - the timestamped folder name to be restored. This needs to be copied to the OpsManager VM's ```$HOME/workspace/backups``` folder before the job is run.
 
-Each Rundeck job executes a corresponding runner ```run-*``` shell script, which can be found in the root folder of this repository. These scripts can be run on demand provided the script environment variables have been set. You can inspect the script to determine the required environment variables.
-
-## Restoring a Deployment
-
-Due to a bug in the ```cfops``` utility, which is used to restore the various parts of the PCF deployment, the OpsManager VM needs to be restored manually before running the Rundeck restore job. First the vSphere (IaaS) environment needs to be restored to the same configuration PCF was originally deployed to before it can be restored. Once vSphere has been restored, follow the steps below to restore PCF.
-
-> The following steps have been verified with Pivotal Cloud Foundry OpsManager 1.7.x and may need to change with subsequent major releases.
-
-1. Deploy OpsManager OVA using the same network settings as before.
-
-2. Setup Rundeck SSH keys on deployed OpsManager VM and configure node in Rundeck.
-
-3. Copy the backup to be restored to ```$HOME/workspace/backups```, or if backups were written to shared storage mount it to the OpsManager VM.
-
-4. Import ```$HOME/workspace/backups/$TIMESTAMP/opsmanager/installation.zip``` from the command line as follows.
-
-    ```
-    curl -v -k https://$OPSMAN_HOST/api/v0/installation_asset_collection -X POST -F 'installation[file]=@/home/ubuntu/workspace/backups/$TIMESTAMP/opsmanager/installation.zip' -F 'passphrase=$OPSMAN_KEY'
-    ```
-
-    or import it via the OpsManager Web UI. Make sure you use the same passphrase that was used for the backed up deployment.
-
-5. Delete the /var/tempest/workspaces/default/deployments/bosh-state.json file on the OpsManager VM. 
-    
-    > This will force the Bosh director to be redeployed when you hit "Apply Changes" to rebuild the PCF environment.
-
-6. Sign in to the OpsManager Web UI using same admin user and password as backed up environment. 
-
-7. You will observe that some tiles are orange. To fix this simply re-import the stemcells of the tiles that are orange.
-    
-    > It seems like the import process does not import the stemcell references correctly. 
-
-8. In the JMX Bridge tile navigate to the resources configuration and scale the "OpenTSDB Firehose Nozzle" to 0 instances. 
-    
-    > This component fails the installation as Ops Manager insists on applying changes to this tile before the ER tile.
-
-9. Click "Apply Changes" to deploy the changes made via Ops Manager UI.
-
-10. Run the restore rundeck job on the restored OpsManager node providing the TIMESTAMP of the backup to restore.
-
-    > This should restore you CloudFoundry configuration as well as deployed applications and services.
-
-11. Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
-
-## Upgrading PCF Ops Manager
-
-The instructions to upgrade PCF OpsManager can be found [here](http://docs.pivotal.io/pivotalcf/1-7/customizing/upgrading-pcf.html#choose-az). You can follow steps 1-4 given above to deploy the new OpsManager OVA and set it up for automation after shutting down the old OpsManager VM. Since you are only upgrading the OpsManager, Bosh and its deployments will be untouched. You may still have to upload missing stemcells and apply changes to synchronize the OpsManager state with that of Bosh, but this should not have any impact on the existing Bosh deployments.
+Some of the Rundeck jobs execute corresponding runner ```run-*``` shell scripts, which can be found in the scripts folder of this repository. These scripts can be run on demand provided the environment variables have been set. You can inspect the script to determine the required environment variables.
 
 ## Configuration
 
@@ -316,3 +267,48 @@ BIND_PASSWD=*****
 ldapsearch -H $BIND_USER:3268 -D "$BIND_USER" -w "$BIND_PASSWD" -b 'dc=acme,dc=com' "$LDAP_SEARCH_QUERY"
 ```
 
+## Restoring a Deployment
+
+Due to a bug in the ```cfops``` utility, which is used to restore the various parts of the PCF deployment, the OpsManager VM needs to be restored manually before running the Rundeck restore job. First the vSphere (IaaS) environment needs to be restored to the same configuration PCF was originally deployed to before it can be restored. Once vSphere has been restored, follow the steps below to restore PCF.
+
+> The following steps have been verified with Pivotal Cloud Foundry OpsManager 1.7.x and may need to change with subsequent major releases.
+
+1. Deploy OpsManager OVA using the same network settings as before.
+
+2. Setup Rundeck SSH keys on deployed OpsManager VM and configure node in Rundeck.
+
+3. Copy the backup to be restored to ```$HOME/workspace/backups```, or if backups were written to shared storage mount it to the OpsManager VM.
+
+4. Import ```$HOME/workspace/backups/$TIMESTAMP/opsmanager/installation.zip``` from the command line as follows.
+
+    ```
+    curl -v -k https://$OPSMAN_HOST/api/v0/installation_asset_collection -X POST -F 'installation[file]=@/home/ubuntu/workspace/backups/$TIMESTAMP/opsmanager/installation.zip' -F 'passphrase=$OPSMAN_KEY'
+    ```
+
+    or import it via the OpsManager Web UI. Make sure you use the same passphrase that was used for the backed up deployment.
+
+5. Delete the /var/tempest/workspaces/default/deployments/bosh-state.json file on the OpsManager VM. 
+    
+    > This will force the Bosh director to be redeployed when you hit "Apply Changes" to rebuild the PCF environment.
+
+6. Sign in to the OpsManager Web UI using same admin user and password as backed up environment. 
+
+7. You will observe that some tiles are orange. To fix this simply re-import the stemcells of the tiles that are orange.
+    
+    > It seems like the import process does not import the stemcell references correctly. 
+
+8. In the JMX Bridge tile navigate to the resources configuration and scale the "OpenTSDB Firehose Nozzle" to 0 instances. 
+    
+    > This component fails the installation as Ops Manager insists on applying changes to this tile before the ER tile.
+
+9. Click "Apply Changes" to deploy the changes made via Ops Manager UI.
+
+10. Run the restore rundeck job on the restored OpsManager node providing the TIMESTAMP of the backup to restore.
+
+    > This should restore you CloudFoundry configuration as well as deployed applications and services.
+
+11. Restore JMX Bridge Tile's "OpenTSDB Firehose Nozzle" to 1 instance and apply changes.
+
+## Upgrading PCF Ops Manager
+
+The instructions to upgrade PCF OpsManager can be found [here](http://docs.pivotal.io/pivotalcf/1-7/customizing/upgrading-pcf.html#choose-az). You can follow steps 1-4 given above to deploy the new OpsManager OVA and set it up for automation after shutting down the old OpsManager VM. Since you are only upgrading the OpsManager, Bosh and its deployments will be untouched. You may still have to upload missing stemcells and apply changes to synchronize the OpsManager state with that of Bosh, but this should not have any impact on the existing Bosh deployments.
