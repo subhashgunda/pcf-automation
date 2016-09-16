@@ -562,8 +562,14 @@ Dir.glob('organizations/*.yml') do |org_file|
 		# Set org quota
 		#
 
-		exec_cmd( "#{@cf_cli} set-quota '#{org_name}' '#{org_details['quota']}'",
-			"Unable to set quota for organization '#{org_name}'.", @test_mode ) if org_details.has_key?('quota')
+		current_quota = exec_cmd( "#{@cf_cli} org '#{org_name}' | awk '/quota:/{ print $2 }'", 
+			"Unable to determine current quota for organization '#{org_name}'." ).chomp
+
+		if org_details.has_key?('quota') && current_quota != org_details['quota']
+
+			exec_cmd( "#{@cf_cli} set-quota '#{org_name}' '#{org_details['quota']}'",
+				"Unable to set quota for organization '#{org_name}'.", @test_mode )
+		end 
 
 		#
 		# Create space quotas
@@ -759,6 +765,22 @@ cf_quota_group_list.each{ |n|
 # Create users
 #
 
+default_roles = [
+	"approvals.me", 
+	"cloud_controller.read", 
+	"cloud_controller.write", 
+	"cloud_controller_service_permissions.read", 
+	"notification_preferences.read", 
+	"notification_preferences.write", 
+	"oauth.approvals", 
+	"openid", 
+	"password.write", 
+	"profile", 
+	"roles", 
+	"scim.me", 
+	"uaa.user",
+	"user_attributes" ]
+
 Dir.glob('users/*.yml') do |user_file|
 
 	users = []
@@ -773,7 +795,7 @@ Dir.glob('users/*.yml') do |user_file|
 	users.each do |user|
 
 		name = user['name'] 
-		roles = user['roles']
+		roles = Set.new((user['roles'] || []) + default_roles)
 
 		if !user_exists?(name)
 
@@ -790,16 +812,26 @@ Dir.glob('users/*.yml') do |user_file|
 				exec_cmd( "#{@cf_cli} create-user #{name} '#{passwd}'",
 					'Unable to create user to #{name}.', @test_mode )
 			end
+
+			if @test_mode
+				assigned_roles = default_roles
+			else
+				assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
+			end
 		else
-			user_detail = %x(#{@uaac} user get '#{name}')
+			assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
 		end
 
-		if !roles.nil?
-			roles.each do |role|
-				if user_detail.nil? || (user_detail=~/display: #{role}$/).nil?
-					exec_cmd( "#{@uaac} member add #{role} #{name}",
-						"Unable to add role '#{role}' to user '#{name}'.", @test_mode )
-				end
+		roles.each do |role|
+			if !assigned_roles.include?(role)
+				exec_cmd( "#{@uaac} member add #{role} #{name}",
+					"Unable to add role '#{role}' to user '#{name}'.", @test_mode )
+			end
+		end
+		assigned_roles.each do |role|
+			if !roles.include?(role)
+				exec_cmd( "#{@uaac} member delete #{role} #{name}",
+					"Unable to delete role '#{role}' from user '#{name}'.", @test_mode )
 			end
 		end
 	end
