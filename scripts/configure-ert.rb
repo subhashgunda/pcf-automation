@@ -760,7 +760,7 @@ cf_quota_group_list.each{ |n|
 #
 
 Dir.glob('users/*.yml') do |user_file|
-	
+
 	users = []
 	user_data = YAML.load_file(user_file)
 
@@ -772,32 +772,34 @@ Dir.glob('users/*.yml') do |user_file|
 
 	users.each do |user|
 
-		user_name = user['user-name']
+		name = user['name'] 
 		roles = user['roles']
 
-		if !user_exists?(user_name)
+		if !user_exists?(name)
 
 			if user['is-ldap-user']
-				add_user(user_name)
+				add_user(name)
 			else
 				passwd = user['password']
 				if passwd.nil?
 					passwd = generate_password 
-					puts "Creating CF only user '#{user_name}' with password '#{passwd}'."
+					puts "Creating CF only user '#{name}' with password '#{passwd}'."
 				else
-					puts "Creating CF only user '#{user_name}'."
+					puts "Creating CF only user '#{name}'."
 				end
-				exec_cmd( "#{@cf_cli} create-user #{user_name} '#{passwd}'",
-					'Unable to create user to #{user_name}.', @test_mode )
+				exec_cmd( "#{@cf_cli} create-user #{name} '#{passwd}'",
+					'Unable to create user to #{name}.', @test_mode )
 			end
 		else
-			user_detail = %x(#{@uaac} user get '#{user_name}')
+			user_detail = %x(#{@uaac} user get '#{name}')
 		end
 
-		roles.each do |role|		
-			if user_detail.nil? || (user_detail=~/display: #{role}$/).nil?
-				exec_cmd( "#{@uaac} member add #{role} #{user_name}",
-					"Unable to add role '#{role}' to user '#{user_name}'.", @test_mode )
+		if !roles.nil?
+			roles.each do |role|
+				if user_detail.nil? || (user_detail=~/display: #{role}$/).nil?
+					exec_cmd( "#{@uaac} member add #{role} #{name}",
+						"Unable to add role '#{role}' to user '#{name}'.", @test_mode )
+				end
 			end
 		end
 	end
