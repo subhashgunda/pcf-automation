@@ -863,7 +863,7 @@ if !@ldap_url.nil?
 			-D '#{@ldap_bind_dn}' -w '#{@ldap_password}' \
 			-b '#{@ldap_config['user-search-base']}' '#{user_search_query}' dn | awk '/dn: /{ print substr($0, 5, length($0)-5) }')
 
-		if dn.empty?
+		if $?.success? && dn.empty?
 			puts "Deleting user #{user}."
 			exec_cmd( "#{@cf_cli} delete-user #{user} -f",
 				"Unable to delete user #{user}.", @test_mode )
