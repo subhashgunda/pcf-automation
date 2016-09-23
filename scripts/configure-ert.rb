@@ -244,6 +244,7 @@ opsman_key = get_arg_value('-k', '--opsman-key')
 @ldap_bind_dn = get_arg_value('-d', '--ldap-bind-dn') || @ldap_config['bind-dn']
 @ldap_password = get_arg_value('-w', '--ldap-password') || @ldap_config['password']
 
+@enable_ssh = @config['enable-ssh']
 @delete_missing_entities = @config['delete-missing-entities']
 ignore_security_groups = @config['ignore']['security-groups']
 ignore_quotas = @config['ignore']['quotas']
@@ -650,6 +651,20 @@ Dir.glob('organizations/*.yml') do |org_file|
 
 			space_id = exec_cmd( "#{@cf_cli} space '#{space_name}' --guid",
 				"Unable to retrieve id of space #{space_name}." ).chomp
+
+			#
+			# Set space ssh access
+			#
+			%x(#{@cf_cli} space-ssh-allowed #{space_name} | grep 'enabled' >/dev/null 2>&1)
+			if (@enable_ssh && !s.has_key?('enable-ssh')) || s['enable-ssh'] 
+				exec_cmd( "#{@cf_cli} allow-space-ssh #{space_name}",
+					"Unable to enable ssh access to space '#{space_name}' in organization '#{org_name}'.", 
+					@test_mode ) if !$?.success?
+			else				
+				exec_cmd( "#{@cf_cli} disallow-space-ssh #{space_name} -o '#{org_name}'",
+					"Unable to disable ssh access '#{space_name}' in organization '#{org_name}'.", 
+					@test_mode ) if $?.success?
+			end
 
 			#
 			# Set space quota
