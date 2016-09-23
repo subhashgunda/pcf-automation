@@ -661,7 +661,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 					"Unable to enable ssh access to space '#{space_name}' in organization '#{org_name}'.", 
 					@test_mode ) if !$?.success?
 			else				
-				exec_cmd( "#{@cf_cli} disallow-space-ssh #{space_name} -o '#{org_name}'",
+				exec_cmd( "#{@cf_cli} disallow-space-ssh #{space_name}'",
 					"Unable to disable ssh access '#{space_name}' in organization '#{org_name}'.", 
 					@test_mode ) if $?.success?
 			end
