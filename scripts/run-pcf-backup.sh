@@ -75,12 +75,15 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
     if [[ -z "$BACKUP_AGE" ]]; then
         BACKUP_AGE=0
     fi
+    # Delete backup directories
     for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print); do 
         if [[ -z $(echo $d | grep 'mysql-service$') ]]; then 
             echo "Deleting old backup: $d";
             #rm -fr $d 
         fi
     done
+    # Delete old log files
+    find $BACKUP_DIR/*.log -mtime +$BACKUP_AGE -type f -print
 fi
 
 set +x
