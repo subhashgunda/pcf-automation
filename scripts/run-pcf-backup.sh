@@ -81,6 +81,6 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
             #rm -fr $d 
         fi
     done
-done
+fi
 
 set +x
