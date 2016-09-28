@@ -657,11 +657,11 @@ Dir.glob('organizations/*.yml') do |org_file|
 			#
 			%x(#{@cf_cli} space-ssh-allowed #{space_name} | grep 'enabled' >/dev/null 2>&1)
 			if (@enable_ssh && !s.has_key?('enable-ssh')) || s['enable-ssh'] 
-				exec_cmd( "#{@cf_cli} allow-space-ssh #{space_name}",
+				exec_cmd( "#{@cf_cli} allow-space-ssh '#{space_name}'",
 					"Unable to enable ssh access to space '#{space_name}' in organization '#{org_name}'.", 
 					@test_mode ) if !$?.success?
 			else				
-				exec_cmd( "#{@cf_cli} disallow-space-ssh #{space_name}'",
+				exec_cmd( "#{@cf_cli} disallow-space-ssh '#{space_name}'",
 					"Unable to disable ssh access '#{space_name}' in organization '#{org_name}'.", 
 					@test_mode ) if $?.success?
 			end
