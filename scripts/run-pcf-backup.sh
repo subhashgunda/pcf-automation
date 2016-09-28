@@ -71,7 +71,7 @@ export LOG_LEVEL=debug
 # Delete old backup files. By default
 # only the most recent backup is kept
 
-if [ -n "$BACKUP_AGE" ]; then
+if [ -z "$BACKUP_AGE" ]; then
     BACKUP_AGE=0
 fi
 for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print -print); do 
