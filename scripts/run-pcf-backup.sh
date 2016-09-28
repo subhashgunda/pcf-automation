@@ -74,11 +74,6 @@ export LOG_LEVEL=debug
 if [ -z "$BACKUP_AGE" ]; then
     BACKUP_AGE=0
 fi
-for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print -print); do 
-    if [[ -z $(echo $d | grep 'mysql-service$') ]]; then 
-        echo "Deleting old backup: $d";
-        #rm -fr $d 
-    fi
-done
+find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print -print -delete
 
 set +x
