@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+#set -x
 
 # Environment variables
 #
@@ -46,27 +46,27 @@ mkdir -p $BACKUP_TIMESTAMP_DIR
 
 export LOG_LEVEL=debug
 
-# for t in ${tiles[*]}; do
+for t in ${tiles[*]}; do
 
-#     echo -e "\n**** Backing up tile '$t' ****\n"
+    echo -e "\n**** Backing up tile '$t' ****\n"
 
-#     echo -e "\n\n==> Backup logs for tile '$t': \n" >> $BACKUP_TIMESTAMP_DIR.log
+    echo -e "\n\n==> Backup logs for tile '$t': \n" >> $BACKUP_TIMESTAMP_DIR.log
 
-#     ./cfops backup $ENCRYPTION_OPTION \
-#         --opsmanagerhost "$OPSMAN_HOST" \
-#         --adminuser "$OPSMAN_USER" \
-#         --adminpass "$OPSMAN_PASSWD" \
-#         --opsmanageruser "$OPSMAN_SSH_USER" \
-#         --opsmanagerpass "$OPSMAN_SSH_PASSWORD" \
-#         --tile $t \
-#         --destination $BACKUP_TIMESTAMP_DIR 2>&1 | tee -a $BACKUP_TIMESTAMP_DIR.log
+    ./cfops backup $ENCRYPTION_OPTION \
+        --opsmanagerhost "$OPSMAN_HOST" \
+        --adminuser "$OPSMAN_USER" \
+        --adminpass "$OPSMAN_PASSWD" \
+        --opsmanageruser "$OPSMAN_SSH_USER" \
+        --opsmanagerpass "$OPSMAN_SSH_PASSWORD" \
+        --tile $t \
+        --destination $BACKUP_TIMESTAMP_DIR 2>&1 | tee -a $BACKUP_TIMESTAMP_DIR.log
 
-#     if [[ $? -ne 0 ]]; then
-#         rm -fr $BACKUP_TIMESTAMP_DIR
-#         echo "ERROR! Backup of tile '$t' failed."
-#         exit 1
-#     fi
-# done
+    if [[ $? -ne 0 ]]; then
+        rm -fr $BACKUP_TIMESTAMP_DIR
+        echo "ERROR! Backup of tile '$t' failed."
+        exit 1
+    fi
+done
 
 # Delete old backup files. By default
 # only the most recent backup is kept
@@ -79,11 +79,11 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
     for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print); do 
         if [[ -z $(echo $d | grep 'mysql-service$') ]]; then 
             echo "Deleting old backup: $d";
-            #rm -fr $d 
+            rm -fr $d 
         fi
     done
     # Delete old log files
-    find $BACKUP_DIR/*.log -mtime +$BACKUP_AGE -type f -print
+    find $BACKUP_DIR/*.log -mtime +$BACKUP_AGE -type f -delete
 fi
 
-set +x
+#set +x
