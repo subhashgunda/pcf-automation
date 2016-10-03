@@ -245,6 +245,7 @@ opsman_key = get_arg_value('-k', '--opsman-key')
 @ldap_password = get_arg_value('-w', '--ldap-password') || @ldap_config['password']
 
 @enable_ssh = @config['enable-ssh']
+@synchronize_ldap_users = @config['synchronize-ldap-users']
 @delete_missing_entities = @config['delete-missing-entities']
 ignore_security_groups = @config['ignore']['security-groups']
 ignore_quotas = @config['ignore']['quotas']
@@ -794,6 +795,7 @@ default_roles = [
 	"roles", 
 	"scim.me", 
 	"uaa.user",
+	"uaa.offline_token",
 	"user_attributes" ]
 
 Dir.glob('users/*.yml') do |user_file|
@@ -854,7 +856,7 @@ end
 
 # Clean up LDAP users that no long exist in LDAP
 
-if !@ldap_url.nil?
+if @synchronize_ldap_users && !@ldap_url.nil?
 
 	ldap_users = JSON.parse(exec_cmd( "#{@cf_cli} curl /v2/users",
 		"Unable to retrieve list of all users."))['resources']
