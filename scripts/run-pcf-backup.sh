@@ -36,7 +36,7 @@ fi
 tiles=(
     ops-manager
     elastic-runtime
-#    mysql-tile
+    mysql-tile
 #    redis-tile
 #    rabbitmq
 )
