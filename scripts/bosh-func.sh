@@ -107,7 +107,7 @@ function bosh::recreate_job() {
     local vm_name=${1%%/*}
     local vm_index=${1##*/}
     echo "Recreating job '$vm_name' index '$vm_index'..."
-    echo "yes" | $bosh recreate $vm_name $vm_index --force
+    #echo "yes" | $bosh recreate $vm_name $vm_index --force
 }
 
 function bosh::ssh() {
