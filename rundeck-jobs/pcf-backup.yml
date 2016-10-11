@@ -10,7 +10,7 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 2
-    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20,pcf-prod-dc10'
   nodesSelectedByDefault: true
   notification:
     onfailure:
