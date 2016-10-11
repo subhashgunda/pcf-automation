@@ -106,7 +106,7 @@ function bosh::ssh() {
 
     local vm=$1
     local cmd=$2
-    echo -e "sudo su -\n$2\nexit\n" | $bosh ssh $vm
+    echo -e "set -x\nsudo su -\n$2\nexit\n" | $bosh ssh $vm
 }
 
 function bosh::restart_job() {
