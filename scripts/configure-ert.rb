@@ -466,6 +466,83 @@ if @config.has_key?('default-security-groups')
 end
 
 #
+# Create system users
+#
+
+default_roles = [
+	"approvals.me", 
+	"cloud_controller.read", 
+	"cloud_controller.write", 
+	"cloud_controller_service_permissions.read", 
+	"notification_preferences.read", 
+	"notification_preferences.write", 
+	"oauth.approvals", 
+	"openid", 
+	"password.write", 
+	"profile", 
+	"roles", 
+	"scim.me", 
+	"uaa.user",
+	"uaa.offline_token",
+	"user_attributes" ]
+
+Dir.glob('users/*.yml') do |user_file|
+
+	users = []
+	user_data = YAML.load_file(user_file)
+
+	if user_data.has_key?('users')
+		users = user_data['users']
+	else
+		users += [ user_data ]
+	end
+
+	users.each do |user|
+
+		name = user['name'] 
+		roles = Set.new((user['roles'] || []) + default_roles)
+
+		if !user_exists?(name)
+
+			if user['is-ldap-user']
+				add_user(name)
+			else
+				passwd = user['password']
+				if passwd.nil?
+					passwd = generate_password 
+					puts "Creating CF only user '#{name}' with password '#{passwd}'."
+				else
+					puts "Creating CF only user '#{name}'."
+				end
+				exec_cmd( "#{@cf_cli} create-user #{name} '#{passwd}'",
+					'Unable to create user to #{name}.', @test_mode )
+			end
+
+			if @test_mode
+				assigned_roles = default_roles
+			else
+				assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
+			end
+		else
+			assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
+		end
+
+		roles.each do |role|
+			if !assigned_roles.include?(role)
+				exec_cmd( "#{@uaac} member add #{role} #{name}",
+					"Unable to add role '#{role}' to user '#{name}'.", @test_mode )
+			end
+		end
+		assigned_roles.each do |role|
+			if !roles.include?(role)
+				exec_cmd( "#{@uaac} member delete #{role} #{name}",
+					"Unable to delete role '#{role}' from user '#{name}'.", @test_mode )
+			end
+		end
+	end
+end
+
+#
 # Update Org Quotas
 #
 
@@ -776,83 +853,6 @@ cf_quota_group_list.each{ |n|
 	exec_cmd( "#{@cf_cli} delete-quota #{n} -f",
 		"Unable to delete org quota #{n}.", @test_mode )
 } if @delete_missing_entities
-
-#
-# Create users
-#
-
-default_roles = [
-	"approvals.me", 
-	"cloud_controller.read", 
-	"cloud_controller.write", 
-	"cloud_controller_service_permissions.read", 
-	"notification_preferences.read", 
-	"notification_preferences.write", 
-	"oauth.approvals", 
-	"openid", 
-	"password.write", 
-	"profile", 
-	"roles", 
-	"scim.me", 
-	"uaa.user",
-	"uaa.offline_token",
-	"user_attributes" ]
-
-Dir.glob('users/*.yml') do |user_file|
-
-	users = []
-	user_data = YAML.load_file(user_file)
-
-	if user_data.has_key?('users')
-		users = user_data['users']
-	else
-		users += [ user_data ]
-	end
-
-	users.each do |user|
-
-		name = user['name'] 
-		roles = Set.new((user['roles'] || []) + default_roles)
-
-		if !user_exists?(name)
-
-			if user['is-ldap-user']
-				add_user(name)
-			else
-				passwd = user['password']
-				if passwd.nil?
-					passwd = generate_password 
-					puts "Creating CF only user '#{name}' with password '#{passwd}'."
-				else
-					puts "Creating CF only user '#{name}'."
-				end
-				exec_cmd( "#{@cf_cli} create-user #{name} '#{passwd}'",
-					'Unable to create user to #{name}.', @test_mode )
-			end
-
-			if @test_mode
-				assigned_roles = default_roles
-			else
-				assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
-			end
-		else
-			assigned_roles = Set.new(%x(#{@uaac} user get '#{name}' | awk '/display:/{ print $2 }').split)
-		end
-
-		roles.each do |role|
-			if !assigned_roles.include?(role)
-				exec_cmd( "#{@uaac} member add #{role} #{name}",
-					"Unable to add role '#{role}' to user '#{name}'.", @test_mode )
-			end
-		end
-		assigned_roles.each do |role|
-			if !roles.include?(role)
-				exec_cmd( "#{@uaac} member delete #{role} #{name}",
-					"Unable to delete role '#{role}' from user '#{name}'.", @test_mode )
-			end
-		end
-	end
-end
 
 # Clean up LDAP users that no long exist in LDAP
 
