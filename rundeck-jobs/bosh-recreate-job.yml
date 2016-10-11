@@ -2,7 +2,7 @@
   executionEnabled: true
   id: 2ab15454-15b2-4400-8e90-f061bc7ba008
   loglevel: INFO
-  name: bosh-recreate-vm
+  name: bosh-recreate-job
   nodefilters:
     dispatch:
       excludePrecedence: true
