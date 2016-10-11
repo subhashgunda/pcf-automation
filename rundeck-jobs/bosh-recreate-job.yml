@@ -25,7 +25,6 @@
     name: opsman-password
     required: true
     secure: true
-    value: 2Secret4CF
     valueExposed: true
   - description: The full bosh vm job name to execute the command on
     name: vm

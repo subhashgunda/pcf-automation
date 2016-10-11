@@ -10,21 +10,22 @@
       keepgoing: false
       rankOrder: ascending
       threadcount: 2
-    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20,pcf-prod-dc10'
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20'
   nodesSelectedByDefault: true
   notification:
     onfailure:
       email:
         attachLog: true
-        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
-        subject: 'NOK : PCF backup succeeded on deployments "${execution.succeededNodeListString}", but failed on deployments "${execution.failedNodeListString}".'
+        recipients: admin@pcf.com
+        subject: 'NOK : PCF backup succeeded on deployments "${execution.succeededNodeListString}",
+          but failed on deployments "${execution.failedNodeListString}".'
     onstart:
       email:
-        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
-        subject: pcf-backup-dev started
+        recipients: admin@pcf.com
+        subject: pcf-backup started
     onsuccess:
       email:
-        recipients: juergen.wendt@solera.com,Razvan.Floarea@solera.com,Michael.Nicloux@solera.com,Marco.Foglia@solera.com,Per.Naeslund@solera.com
+        recipients: admin@pcf.com
         subject: 'OK :  PCF backup succeeded on deployments "${execution.succeededNodeListString}".'
   options:
   - description: All backups older than the backup age in days will be deleted.
@@ -55,8 +56,8 @@
   schedule:
     month: '*'
     time:
-      hour: '22'
-      minute: '30'
+      hour: '00'
+      minute: '00'
       seconds: '0'
     weekday:
       day: '*'
@@ -122,11 +123,11 @@
         fi
 
         mkdir -p $BACKUP_DIR
-        
+
         #
         # Set variables required by runner script
         #
-        
+
         export OPSMAN_HOST="@node.opsman-host@"
         export OPSMAN_USER="@node.opsman-user@"
         export OPSMAN_PASSWD="@option.opsman-password@"
@@ -136,9 +137,8 @@
         export BACKUP_AGE="@option.backup-age@"
 
         $ROOT_DIR/scripts/run-pcf-backup.sh
-        
-        #set +x
 
+        #set +x
     keepgoing: false
     strategy: node-first
   uuid: 442e57fa-7e49-4f9d-98f9-e1f2a36fb834
