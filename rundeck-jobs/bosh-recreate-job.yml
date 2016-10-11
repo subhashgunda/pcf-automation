@@ -1,0 +1,118 @@
+- description: Recreates a bosh managed VM
+  executionEnabled: true
+  id: 2ab15454-15b2-4400-8e90-f061bc7ba008
+  loglevel: INFO
+  name: bosh-recreate-vm
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      threadcount: 1
+    filter: 'tags: pcf-dev-dc20,pcf-prod-dc20,pcf-prod-dc10'
+  nodesSelectedByDefault: false
+  options:
+  - description: Set this value to '1' to update the scripts from source control.
+    name: clean
+    value: '0'
+    values:
+    - '0'
+    - '1'
+  - description: The name pre-fix of the deployment
+    name: deployment
+    required: true
+  - description: The ops manager user's password.
+    name: opsman-password
+    required: true
+    secure: true
+    value: 2Secret4CF
+    valueExposed: true
+  - description: The full bosh vm job name to execute the command on
+    name: vm
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |
+        #!/bin/bash
+
+        #set -x
+
+        #
+        # Rundeck variables
+        #
+
+        [ -z "@node.git@" ] && (
+            echo "ERROR! The Rundeck node environment variable \"git\" has not been set."
+            exit 1
+        )
+        [ -z "@node.opsman-host@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"opsman-host\" has not been set."
+          exit 1
+        )
+        [ -z "@node.opsman-user@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"opsman-user\" has not been set."
+          exit 1
+        )
+        [ -z "@option.opsman-password@" ] && (
+          echo "ERROR! The Ops Manager administration UI password needs to be provided."
+          exit 1
+        )
+        [ -z "@node.pcf-config@" ] && (
+          echo "ERROR! The Rundeck node environment variable \"pcf-config\" has not been set."
+          exit 1
+        )
+
+        #
+        # Setup workspace
+        #
+
+        export ROOT_DIR=$HOME/workspace/scripts
+
+        if [ "@option.clean@" == "1" ]; then
+            rm -fr $ROOT_DIR
+        fi
+        if [[ ! -e $ROOT_DIR ]]; then
+            GIT_URL="@node.git@"
+            git clone $GIT_URL/pcf-automation.git --branch master --single-branch $ROOT_DIR
+            pushd $ROOT_DIR
+            git checkout master
+            popd
+        else
+            pushd $ROOT_DIR
+            git checkout master
+            git pull
+            popd
+        fi
+
+        #
+        # Initialize script
+        #
+
+        opsman_host="@node.opsman-host@"
+        opsman_user="@node.opsman-user@"
+        opsman_password="@option.opsman-password@"
+
+        dep_prefix="@option.deployment@"
+        vm="@option.vm@"
+
+        source $ROOT_DIR/scripts/opsman-func.sh
+        source $ROOT_DIR/scripts/bosh-func.sh
+
+        #
+        # Login to Bosh and restart job
+        #
+
+        opsman::login $opsman_host $opsman_user $opsman_password 
+        bosh::login $(opsman::get_director_ip) $(opsman::get_director_user) $(opsman::get_director_password)
+        bosh::set_deployment $dep_prefix
+
+        if [[ -z $vm ]]; then
+            bosh::vms $bosh_deployment
+        else
+            bosh::recreate_job "$vm"
+        fi
+
+        #set +x
+    keepgoing: false
+    strategy: node-first
+  uuid: 2ab15454-15b2-4400-8e90-f061bc7ba008
