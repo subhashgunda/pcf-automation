@@ -35,11 +35,8 @@ if [ -n "$OPSMAN_KEY" ]; then
 fi
 
 tiles=(
-#    ops-manager
+    ops-manager
     elastic-runtime
-#    mysql-tile
-#    redis-tile
-#    rabbitmq
 )
 
 BACKUP_TIMESTAMP_DIR=$BACKUP_DIR/$TIMESTAMP
