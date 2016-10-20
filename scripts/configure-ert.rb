@@ -708,7 +708,7 @@ Dir.glob('organizations/*.yml') do |org_file|
 
 		cf_space_list = cf_spaces_map[org_id] || []
 
-		org_details['spaces'].each{ |s|
+		(org_details['spaces'] || []).each{ |s|
 
 			space_name = s['name']
 
