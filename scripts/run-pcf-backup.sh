@@ -86,17 +86,14 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
     BACKUP_DIR_TO_DELETE=$(date +%Y%m%d%H%M%S -d "$BACKUP_AGE day ago")
     echo "Deleting backup dirs and logs older than $BACKUP_DIR_TO_DELETE..."
 
-    for f in /backup/dc20-devel-pivotal-ops-manager/*; do
+    for f in $BACKUP_DIR/*; do
         if [[ -z $(echo $f | grep 'mysql-service$') ]]; then
             filename=$(basename $f)
             name="${filename%.*}"
             if [[ $name -lt $BACKUP_DIR_TO_DELETE ]]; then
-                echo "Deleting $f.."
-            else
-                echo "Not deleting $f.."
+                echo "Deleting: $d";
+                rm -fr $f
             fi
-        else
-            echo "Not deleting $f.."
         fi
     done
 fi
