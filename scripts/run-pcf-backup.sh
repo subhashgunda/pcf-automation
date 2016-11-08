@@ -74,15 +74,16 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
     fi
 
     # Delete backup directories recursively using directory timestamp
-    for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print); do 
+    for d in $(find $BACKUP_DIR -ctime +$BACKUP_AGE -type d -links 2 -print); do 
         if [[ -z $(echo $d | grep 'mysql-service$') ]]; then 
             echo "Deleting old backup: $d";
             rm -fr $d 
         fi
     done
-    find $BACKUP_DIR/*.log -mtime +$BACKUP_AGE -type f -delete
+    find $BACKUP_DIR/*.log -ctime +$BACKUP_AGE -type f -delete
 
     # Delete old log files and backup dir names older than given age
+    # (second pass in case first pass above fails to pick all the old files)
     BACKUP_DIR_TO_DELETE=$(date +%Y%m%d%H%M%S -d "$BACKUP_AGE day ago")
     echo "Deleting backup dirs and logs older than $BACKUP_DIR_TO_DELETE..."
 
