@@ -91,7 +91,7 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
             filename=$(basename $f)
             name="${filename%.*}"
             if [[ $name -lt $BACKUP_DIR_TO_DELETE ]]; then
-                echo "Deleting: $d";
+                echo "Deleting: $f";
                 rm -fr $f
             fi
         fi
