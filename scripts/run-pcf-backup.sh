@@ -72,15 +72,33 @@ if [[ -n "$BACKUP_DIR" ]] && [[ "$BACKUP_DIR" != "/" ]]; then
     if [[ -z "$BACKUP_AGE" ]]; then
         BACKUP_AGE=0
     fi
-    # Delete backup directories
+
+    # Delete backup directories recursively using directory timestamp
     for d in $(find $BACKUP_DIR -mtime +$BACKUP_AGE -type d -links 2 -print); do 
         if [[ -z $(echo $d | grep 'mysql-service$') ]]; then 
             echo "Deleting old backup: $d";
             rm -fr $d 
         fi
     done
-    # Delete old log files
     find $BACKUP_DIR/*.log -mtime +$BACKUP_AGE -type f -delete
+
+    # Delete old log files and backup dir names older than given age
+    BACKUP_DIR_TO_DELETE=$(date +%Y%m%d%H%M%S -d "$BACKUP_AGE day ago")
+    echo "Deleting backup dirs and logs older than $BACKUP_DIR_TO_DELETE..."
+
+    for f in /backup/dc20-devel-pivotal-ops-manager/*; do
+        if [[ -z $(echo $f | grep 'mysql-service$') ]]; then
+            filename=$(basename $f)
+            name="${filename%.*}"
+            if [[ $name -lt $BACKUP_DIR_TO_DELETE ]]; then
+                echo "Deleting $f.."
+            else
+                echo "Not deleting $f.."
+            fi
+        else
+            echo "Not deleting $f.."
+        fi
+    done
 fi
 
 #set +x
